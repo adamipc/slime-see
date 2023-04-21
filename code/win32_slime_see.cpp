@@ -12,6 +12,13 @@
 #define EvalPrintB(x) printf("%s = %s\n", #x, (char*)((x)?"true":"false"))
 #define EvalPrintS(x) printf("%s = %s\n", #x, (char*)(x))
 
+struct Node {
+  Node *next;
+  Node *prev;
+
+  int x;
+};
+
 struct TestStruct {
   i32 a;
   i32 b;
@@ -33,8 +40,6 @@ WinMain(HINSTANCE Instance,
   freopen_s(&fDummy, "CONOUT$", "w", stderr);
   freopen_s(&fDummy, "CONIN$", "r", stdin);
 
-
-  
   /*
   printf("COMPILER_CL: %d\n", COMPILER_CL);
   printf("COMPILER_GCC: %d\n", COMPILER_GCC);
@@ -47,6 +52,58 @@ WinMain(HINSTANCE Instance,
   printf("ARCH_ARM: %d\n", ARCH_ARM);
   printf("ARCH_ARM64: %d\n", ARCH_ARM64);
   */
+
+  Node nodes[10];
+  for (int i = 0; i < ArrayCount(nodes); i += 1) {
+    nodes[i].x = i;
+  }
+
+  {
+    Node *first =0;
+
+    for (int i = 0; i < 10; i += 1) {
+      SLLStackPush(first, &nodes[i]);
+    }
+    SLLStackPop(first);
+    SLLStackPop(first);
+    SLLStackPop(first);
+    for (Node *node = first;
+         node != 0;
+         node = node->next) {
+      EvalPrint(node->x);
+    }
+  }
+  /*
+  {
+    Node *first = 0;
+    Node *last = 0;
+    for (int i = 0; i < 5; i += 1) {
+      DLLPushBack(first, last, &nodes[i]);
+    }
+    for (int i = 5; i < 10; i += 1) {
+      DLLPushFront(first, last, &nodes[i]);
+    }
+    for (Node *node = first;
+         node != 0;
+         node = node->next) {
+      EvalPrint(node->x);
+    }
+
+  } 
+  {
+    Node *first = 0;
+    Node *last = 0;
+    for (int i = 0; i < 9; i += 1) {
+      SLLQueuePush(first, last, &nodes[i]);
+    }
+    SLLQueuePushFront(first, last, &nodes[9]);
+    for (Node *node = first;
+         node != 0;
+         node = node->next) {
+      EvalPrint(node->x);
+    }
+
+  } // */
 
   int foo[100];
   for (int i = 0; i < ArrayCount(foo); i += 1) {
