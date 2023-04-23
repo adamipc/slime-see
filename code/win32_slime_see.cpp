@@ -25,6 +25,11 @@ WinMain(HINSTANCE Instance,
   freopen_s(&fDummy, "CONIN$", "r", stdin);
 
   // Main code
+  os_init();
+
+  ThreadContext tctx = {100};
+  os_thread_context_set(&tctx);
+
   M_BaseMemory *os_base = os_base_memory();
   M_Arena arena = m_make_arena(os_base);
 
@@ -32,6 +37,12 @@ WinMain(HINSTANCE Instance,
   foo[999] = 0;
 
   printf("arena: %llu %llu %llu\n", arena.pos, arena.commit_pos, arena.cap);
+
+  {
+    ThreadContext *t = (ThreadContext*)os_thread_context_get();
+    Assert(t == &tctx);
+    Assert(t->test == 100);
+  }
 
   printf("Press any key to exit...");
   int ch = getchar();
