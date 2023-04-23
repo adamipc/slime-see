@@ -1,5 +1,5 @@
-#ifndef BASE_H
-#define BASE_H
+#ifndef BASE_TYPES_H
+#define BASE_TYPES_H
 
 ////////////////////////////////
 // NOTE(adam): Context cracking
@@ -148,6 +148,14 @@
                       ((x)>(b))?(b):(x))
 #define ClampTop(a,b) Min(a,b)
 #define ClampBottom(a,b) Max(a,b)
+
+#define AlignUpPow2(x,p) (((x) + (p) - 1)&~((p) - 1))
+#define AlignDownPow2(x,p) ((x)&~((p) - 1))
+
+#define KB(x) ((x) << 10)
+#define MB(x) ((x) << 20)
+#define GB(x) ((x) << 30)
+#define TB(x) ((x) << 40)
 
 #define global static
 #define local static
@@ -552,5 +560,5 @@ function Vec2_i32 interval_center(Interval2_i32 r);
 
 function Interval1_f32 interval_axis(Interval2_f32 r, Axis axis);
 
-#endif // BASE_H
+#endif // BASE_TYPES_H
 

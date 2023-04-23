@@ -1,6 +1,6 @@
 ////////////////////////////////////////
 // NOTE(adam): Symbolic Constant Functions
-
+#include "base_types.h"
 
 function OperatingSystem
 operating_system_from_context(void) {

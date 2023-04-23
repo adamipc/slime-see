@@ -1,22 +1,28 @@
 #include <windows.h>
 #include <stdio.h>
-#include "base.h"
+#include "base/base_inc.h"
 
-#include "base.cpp"
+#include "base/base_inc.cpp"
+
+#include <stdlib.h>
+
+#include "base/base_memory_malloc.cpp"
 
 #define EvalPrint(x) printf("%s = %d\n", #x, (i32)(x))
 #define EvalPrintU(x) printf("%s = %u\n", #x, (u32)(x))
+#define EvalPrintX(x) printf("%s = %x\n", #x, (u32)(x))
 #define EvalPrintLL(x) printf("%s = %lld\n", #x, (i64)(x))
 #define EvalPrintULL(x) printf("%s = %llu\n", #x, (u64)(x))
 #define EvalPrintF(x) printf("%s = %e [%f]\n", #x, (f64)(x), (f64)(x))
 #define EvalPrintB(x) printf("%s = %s\n", #x, (char*)((x)?"true":"false"))
 #define EvalPrintS(x) printf("%s = %s\n", #x, (char*)(x))
+#define EvalPrintStr8(x) printf("%s = %.*s\n", #x, (int)(x).size, (char*)(x).str)
 
 struct Node {
   Node *next;
   Node *prev;
 
-  int x;
+  u64 x;
 };
 
 struct TestStruct {
@@ -53,15 +59,86 @@ WinMain(HINSTANCE Instance,
   printf("ARCH_ARM64: %d\n", ARCH_ARM64);
   */
 
-  Node nodes[10];
-  for (int i = 0; i < ArrayCount(nodes); i += 1) {
+  M_Arena arena = m_make_arena(m_malloc_base_memory());
+
+  u8 utf8_test[] = { 0x40, 0xF1, 0x80, 0x80, 0x80, };
+  
+  StringDecode dec1 = str_decode_utf8(utf8_test, ArrayCount(utf8_test));
+  StringDecode dec2 = str_decode_utf8(utf8_test + dec1.size,
+                                      ArrayCount(utf8_test) - dec1.size);
+
+  EvalPrintX(dec1.codepoint);
+  EvalPrintX(dec2.codepoint);
+
+  str_encode_utf8(utf8_test, 40000);
+  StringDecode dec3 = str_decode_utf8(utf8_test, 4);
+  EvalPrintU(dec3.codepoint);
+
+  String8 test_string_array[] = {
+    str8_lit("A"),
+    str8_lit("Bee"),
+    str8_lit("Let's get some 90923923 in here."),
+    str8_lit("\x01\x02\x03\x04\x05\x06\x07\x08\n\t\r"),
+    str8_lit("\x00\x00\x00\x00\x00"),
+    str8_lit("\x7f\x7f\x7f"),
+  };
+
+  for (u32 i = 0; i < ArrayCount(test_string_array); i += 1) {
+    String8 in_string = test_string_array[i];
+    {
+      String32 string_32 = str32_from_str8(&arena, in_string);
+      String8 string_8 = str8_from_str32(&arena, string_32);
+      EvalPrintB(str8_match(string_8, in_string, 0));
+    }
+
+    {
+      String16 string_16 = str16_from_str8(&arena, in_string);
+      String8 string_8 = str8_from_str16(&arena, string_16);
+      EvalPrintB(str8_match(string_8, in_string, 0));
+    }
+  }
+
+  EvalPrintB(str8_match(str8_lit("hello world"),
+                        str8_lit("HeLlO wOrLd"),
+                        StringMatchFlag_NoCase));
+
+  String8 test_string = str8_pushf(&arena, "Hello %dth World!", 55);
+
+  EvalPrintStr8(test_string);
+  EvalPrintStr8(str8_prefix(test_string, 5));
+  EvalPrintStr8(str8_postfix(test_string, 6));
+  EvalPrintStr8(str8_skip(test_string, 3));
+  EvalPrintStr8(str8_chop(test_string, 3));
+
+  String8List list = {};
+  str8_list_push(&arena, &list, str8_lit("Part 1"));
+  str8_list_push(&arena, &list, str8_lit("Part 2"));
+  str8_list_push(&arena, &list, str8_lit("Part 3"));
+
+  StringJoin join_params = {};
+  join_params.mid = str8_lit("/");
+  String8 joined = str8_join(&arena, &list, &join_params);
+  EvalPrintStr8(joined);
+
+  String8List split = str8_split(&arena, joined, (u8*)" ", 1);
+
+  for (String8Node *node = split.first;
+       node != 0;
+       node = node->next) {
+    EvalPrintStr8(node->string);
+  }
+
+  u64 node_count = 10;
+  Node *nodes = push_array(&arena, Node, node_count);
+
+  for (u64 i = 0; i < node_count; i += 1) {
     nodes[i].x = i;
   }
 
   {
     Node *first =0;
 
-    for (int i = 0; i < 10; i += 1) {
+    for (u64 i = 0; i < node_count; i += 1) {
       SLLStackPush(first, &nodes[i]);
     }
     SLLStackPop(first);
@@ -73,14 +150,13 @@ WinMain(HINSTANCE Instance,
       EvalPrint(node->x);
     }
   }
-  /*
   {
     Node *first = 0;
     Node *last = 0;
-    for (int i = 0; i < 5; i += 1) {
+    for (u64 i = 0; i < node_count - 5; i += 1) {
       DLLPushBack(first, last, &nodes[i]);
     }
-    for (int i = 5; i < 10; i += 1) {
+    for (u64 i = node_count - 5; i < node_count; i += 1) {
       DLLPushFront(first, last, &nodes[i]);
     }
     for (Node *node = first;
@@ -93,10 +169,10 @@ WinMain(HINSTANCE Instance,
   {
     Node *first = 0;
     Node *last = 0;
-    for (int i = 0; i < 9; i += 1) {
+    for (u64 i = 0; i < node_count - 1; i += 1) {
       SLLQueuePush(first, last, &nodes[i]);
     }
-    SLLQueuePushFront(first, last, &nodes[9]);
+    SLLQueuePushFront(first, last, &nodes[node_count-1]);
     for (Node *node = first;
          node != 0;
          node = node->next) {
