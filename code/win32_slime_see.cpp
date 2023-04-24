@@ -27,22 +27,21 @@ WinMain(HINSTANCE Instance,
   // Main code
   os_init();
 
-  ThreadContext tctx = {100};
-  os_thread_context_set(&tctx);
+  OS_ThreadContext tctx_memory = {};
+  os_thread_init(&tctx_memory);
 
-  M_BaseMemory *os_base = os_base_memory();
-  M_Arena arena = m_make_arena(os_base);
+  M_Scratch scratch;
 
-  int *foo = push_array(&arena, int, 1000);
+  int *foo = push_array(scratch, int, 1000);
   foo[999] = 0;
 
-  printf("arena: %llu %llu %llu\n", arena.pos, arena.commit_pos, arena.cap);
+  M_Arena *arena = (M_Arena *)scratch;
+  printf("scratch: %llu %llu %llu\n",
+      arena->pos, arena->commit_pos, arena->cap);
 
-  {
-    ThreadContext *t = (ThreadContext*)os_thread_context_get();
-    Assert(t == &tctx);
-    Assert(t->test == 100);
-  }
+  M_Scratch other_scratch((M_Arena*)scratch);
+  printf("scratch      : %p\nother_scratch: %p\n",
+         scratch.temp.arena, other_scratch.temp.arena);
 
   printf("Press any key to exit...");
   int ch = getchar();

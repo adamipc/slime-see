@@ -130,30 +130,3 @@ m_arena_align_zero(M_Arena *arena, u64 pow2_align) {
   }
 }
 
-///////////////////////////////////////////
-// NOTE(adam): Temp Helper Functions
-
-function M_Temp
-m_begin_temp(M_Arena *arena) {
-  M_Temp temp = {arena, arena->pos};
-  return (temp);
-}
-
-function void
-m_end_temp(M_Temp temp) {
-  m_arena_pop_to(temp.arena, temp.pos);
-}
-
-M_TempBlock::M_TempBlock(M_Arena *arena) {
-  this->temp = m_begin_temp(arena);
-}
-
-M_TempBlock::~M_TempBlock() {
-  m_end_temp(this->temp);
-}
-
-void
-M_TempBlock::reset() {
-  m_end_temp(this->temp);
-  this->temp = m_begin_temp(this->temp.arena);
-}
