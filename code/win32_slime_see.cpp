@@ -10,6 +10,29 @@
 
 #include "base/base_memory_malloc.cpp"
 
+#define GET_PROC_ADDRESS(v,m,n) (*(PROC*)(&(v))) = GetProcAddress((m),(n))
+
+#define print_str8(x) printf("%.*s\n", (int)((x).size), (x).str)
+
+#include "gl/gl_definitions.h"
+#include "win32/win32_wgl_definitions.h"
+
+#include "gl/gl.cpp"
+#include "win32/win32_wgl.cpp"
+
+LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
+  switch (message)
+  {
+    case WM_CREATE: {
+    } break;
+    default: {
+      return DefWindowProc(hWnd, message, wParam, lParam);
+    } break;
+  }
+
+  return 0;
+}
+
 int CALLBACK
 WinMain(HINSTANCE Instance,
         HINSTANCE PrevInstance,
@@ -32,16 +55,58 @@ WinMain(HINSTANCE Instance,
 
   M_Scratch scratch;
 
-  int *foo = push_array(scratch, int, 1000);
-  foo[999] = 0;
+  String8 error = {};
 
-  M_Arena *arena = (M_Arena *)scratch;
-  printf("scratch: %llu %llu %llu\n",
-      arena->pos, arena->commit_pos, arena->cap);
+  error = win32_wgl_init(Instance);
 
-  M_Scratch other_scratch((M_Arena*)scratch);
-  printf("scratch      : %p\nother_scratch: %p\n",
-         scratch.temp.arena, other_scratch.temp.arena);
+  if (error.size > 0) {
+    goto done;
+  }
+
+  W32_OpenGLWindow window = win32_create_opengl_window(Instance);
+
+  if (window.window == 0) {
+    goto done;
+  }
+
+  ShowWindow(window.window, SW_SHOW);
+
+  float vertices[] = {
+    -0.5f, -0.5f, 0.0f,
+     0.5f, -0.5f, 0.0f,
+     0.0f,  0.5f, 0.0f
+  };
+
+  GLuint vbo;
+  glGenBuffers(1, &vbo);
+  glBindBuffer(GL_ARRAY_BUFFER, vbo);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+  for(;;) {
+    MSG msg = {};
+    BOOL get_message = GetMessage(&msg, 0, 0, 0);
+    if (get_message == 0) {
+      break;
+    }
+    TranslateMessage(&msg);
+    DispatchMessage(&msg);
+
+    HDC dc = GetDC(window.window);
+    win32_wglMakeCurrent(dc, window.glrc);
+
+    glClearColor(0.9f, 0.3f, 0.f, 1.f);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    SwapBuffers(dc);
+    ReleaseDC(window.window, dc);
+  }
+
+done:
+  if (error.size != 0) {
+    fprintf(stdout, "%.*s\n", str8_expand(error));
+  } else {
+    fprintf(stdout, "success\n");
+  }
 
   printf("Press any key to exit...");
   int ch = getchar();

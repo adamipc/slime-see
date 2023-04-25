@@ -229,6 +229,17 @@ str8_list_pushf(M_Arena *arena, String8List *list, char *fmt, ...) {
   str8_list_push(arena, list, result);
 }
 
+//////////////////////////////////////
+///// NOTE(adam): Operator Overloading
+
+function bool operator!(const String8 string) {
+  if (string.size > 0) {
+    return false;
+  } else {
+    return true;
+  }
+}
+
 ////////////////////////////////////////
 // NOTE(adam): String Comparison Functions
 
