@@ -13,27 +13,14 @@ LRESULT CALLBACK bootstrap_wndproc(HWND hWnd, UINT message, WPARAM wParam, LPARA
   return 0;
 }
 
-LRESULT CALLBACK graphics_wndproc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
-  switch (message)
-  {
-    case WM_CREATE: {
-    } break;
-    default: {
-      return DefWindowProc(hWnd, message, wParam, lParam);
-    } break;
-  }
-
-  return 0;
-}
-
 function W32_OpenGLWindow
-win32_create_opengl_window(HINSTANCE Instance) {
+win32_create_opengl_window(HINSTANCE Instance, WNDPROC window_proc) {
   String8 error = {};
 
   HWND graphics_window;
   {
     WNDCLASSA window_class = {};
-    window_class.lpfnWndProc = graphics_wndproc;
+    window_class.lpfnWndProc = window_proc;
     window_class.hInstance = Instance;
     window_class.lpszClassName = "graphics_window";
 

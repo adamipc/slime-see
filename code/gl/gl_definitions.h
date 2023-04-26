@@ -3,6 +3,8 @@
 
 
 #define GL_FALSE                          0
+#define GL_NO_ERROR                       0
+
 #define GL_TRIANGLES                      0x0004
 
 #define GL_FRONT_AND_BACK                 0x0408
@@ -21,13 +23,15 @@
 
 #define GL_STATIC_DRAW                    0x88E4
 
+#define GL_DYNAMIC_COPY                   0x88EA
+
 #define GL_FRAGMENT_SHADER                0x8B30
 #define GL_VERTEX_SHADER                  0x8B31
 
 #define GL_COMPILE_STATUS                 0x8B81
 #define GL_LINK_STATUS                    0x8B82
 
-#define GL_NO_ERROR                       0
+#define GL_SEPARATE_ATTRIBS               0x8C8D
 
 typedef int           GLsizei;
 typedef int           GLint;

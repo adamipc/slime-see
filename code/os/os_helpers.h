@@ -30,6 +30,11 @@ function void os_tctx_init(OS_ThreadContext *tctx, M_BaseMemory *memory);
 function M_Arena*  os_tctx_get_scratch(M_Arena **conflict_array, u32 count);
 
 //////////////////////////////////////
+///// NOTE(adam): Files
+
+function b32 os_file_write(String8 file_name, String8 data);
+
+//////////////////////////////////////
 ///// NOTE(adam): Scratch Arena Wrapper
 
 struct M_Scratch {

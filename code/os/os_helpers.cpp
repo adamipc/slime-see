@@ -86,6 +86,19 @@ os_tctx_get_scratch(M_Arena **conflict_array, u32 count) {
   return result;
 }
 
+//////////////////////////////////////
+///// NOTE(adam): Files
+
+function b32
+os_file_write(String8 file_name, String8 data) {
+  String8Node  node = {};
+  String8List list = {};
+  str8_list_push_explicit(&list, data, &node);
+  b32 result = os_file_write(file_name, list);
+
+  return result;
+}
+
 ///////////////////////////////////////////
 // NOTE(adam): Scratch Arena Wrapper
 

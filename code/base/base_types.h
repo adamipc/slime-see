@@ -451,6 +451,37 @@ union Interval2_i32 {
   i32 v[4];
 };
 
+//////////////////////////////////////
+///// NOTE(adam): Data Access Flags
+
+typedef u32 DataAccessFlags;
+enum {
+  DataAccessFlag_Read    = (1 << 0),
+  DataAccessFlag_Write   = (1 << 1),
+  DataAccesssFlag_Execute = (1 << 2),
+};
+
+//////////////////////////////////////
+///// NOTE(adam): Time
+
+typedef u64 DenseTime;
+
+//////////////////////////////////////
+///// NOTE(adam): File Properties
+
+typedef u32 FilePropertyFlags;
+enum{
+  FilePropertyFlag_Directory = (1 << 0),
+};
+
+struct FileProperties {
+  u64 size;
+  FilePropertyFlags flags;
+  DenseTime create_time;
+  DenseTime modify_time;
+  DataAccessFlags access;
+};
+
 //////////////////////////////////
 // NOTE(adam): Symbolic Constant Functions
 

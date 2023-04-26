@@ -37,3 +37,59 @@ gl_init() {
   return error;
 }
 
+function GLuint
+gl_create_shader_program(M_Arena *arena, String8 vss, String8 fss, String8List feedback_varyings) {
+  GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
+  glShaderSource(vertexShader, 1, (char**)&vss.str, (GLint*)&vss.size);
+  glCompileShader(vertexShader);
+
+  int success;
+  char infoLog[512];
+
+  glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
+  if (!success) {
+    glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
+    printf("ERROR::SHADER::VERTEX::COMPILATION_FAILED\n%s\n", infoLog);
+  }
+
+  GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+  glShaderSource(fragmentShader, 1, (char**)&fss.str, (GLint*)&fss.size);
+  glCompileShader(fragmentShader);
+
+  glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
+  if (!success) {
+    glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
+    printf("ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n%s\n", infoLog);
+  }
+
+  GLuint shaderProgram = glCreateProgram();
+  glAttachShader(shaderProgram, vertexShader);
+  glAttachShader(shaderProgram, fragmentShader);
+
+  if (feedback_varyings.node_count > 0) {
+    M_Scratch scratch(arena);
+    M_Temp restore_point = m_begin_temp(arena);
+    StringJoin join = {};
+    join.post = str8_lit("\0");
+    join.mid = str8_lit("\0");
+    String8 feedback_varyings_array = str8_join(scratch, &feedback_varyings, &join);
+    glTransformFeedbackVaryings(shaderProgram, 1, (char**)&feedback_varyings_array.str, GL_SEPARATE_ATTRIBS);
+    m_end_temp(restore_point);
+  }
+
+  glLinkProgram(shaderProgram);
+
+  glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
+  if (!success) {
+    glGetProgramInfoLog(shaderProgram, 512, NULL, infoLog);
+    printf("ERROR::SHADER::PROGRAM::LINKING_FAILED\n%s\n", infoLog);
+  }
+
+  glUseProgram(shaderProgram);
+
+  glDeleteShader(vertexShader);
+  glDeleteShader(fragmentShader);
+
+  return shaderProgram;
+}
+
