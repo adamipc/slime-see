@@ -74,30 +74,6 @@ WinMain(HINSTANCE Instance,
 
   M_Scratch scratch;
 
-  // File iterator
-  os_file_make_directory(str8_lit("bar"));
-  os_file_write(str8_lit("bar/foo.txt"), str8_lit("Hello world!\n"));
-  os_file_write(str8_lit("bar/bar.txt"), str8_lit("Hello bar!\n"));
-  os_file_write(str8_lit("bar/foo.bar"), str8_lit("Foo Bar bar!\n"));
-  os_file_make_directory(str8_lit("bar/baz"));
-
-  OS_FileIter iter = os_file_iter_init(str8_lit("bar"));
-  String8 name_out = {};
-  FileProperties prop_out = {};
-  while (os_file_iter_next(scratch, &iter, &name_out, &prop_out)) {
-    printf("%.*s:\n", str8_expand(name_out));
-    printf(" size: %lld\n", prop_out.size);
-    printf(" is_dir: %s\n", (prop_out.flags & FilePropertyFlag_Directory) ? "yes" : "no");
-  }
-
-  os_file_iter_end(&iter);
-
-  os_file_delete(str8_lit("bar/foo.txt"));
-  os_file_delete(str8_lit("bar/bar.txt"));
-  os_file_delete(str8_lit("bar/foo.bar"));
-  os_file_delete_directory(str8_lit("bar/baz"));
-  os_file_delete_directory(str8_lit("bar"));
-
   String8 error = {};
 
   error = win32_wgl_init(Instance);
