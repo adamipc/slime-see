@@ -15,6 +15,7 @@ enum OS_SystemPath {
   OS_SystemPath_CurrentDirectory,
   OS_SystemPath_Binary,
   OS_SystemPath_TemporaryDirectory,
+  OS_SystemPath_HomeDirectory,
   OS_SystemPath_COUNT,
 };
 

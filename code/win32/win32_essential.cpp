@@ -454,6 +454,12 @@ os_file_path(M_Arena *arena, OS_SystemPath path) {
         result = str8_from_str16(arena, str16(buffer, size));
       }
     } break;
+    case OS_SystemPath_HomeDirectory: {
+      u32 size = GetEnvironmentVariableW(L"USERPROFILE", 0, 0);
+      LPWSTR wstr = (LPWSTR)push_array(arena, u16, size * sizeof(u16));
+      GetEnvironmentVariableW(L"USERPROFILE", wstr, size);
+      result = str8_from_str16(arena, str16_cstring((u16*)wstr));
+    } break;
     case OS_SystemPath_TemporaryDirectory: {
       u32 size = GetTempPathW(0, 0);
       LPWSTR wstr = (LPWSTR)push_array(arena, u16, size * sizeof(u16));

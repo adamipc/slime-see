@@ -80,6 +80,8 @@ WinMain(HINSTANCE Instance,
   printf("executable_path: %.*s\n", str8_expand(executable_path));
   String8 temp_dir = os_file_path(scratch, OS_SystemPath_TemporaryDirectory);
   printf("temp_dir: %.*s\n", str8_expand(temp_dir));
+  String8 home_dir = os_file_path(scratch, OS_SystemPath_HomeDirectory);
+  printf("home_dir: %.*s\n", str8_expand(home_dir));
 
 #if 0
   // date time encode/decode test
