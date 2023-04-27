@@ -37,12 +37,10 @@ str8_range(u8 *first, u8 *opl) {
 
 function String8 
 str8_cstring(u8 *cstr) {
-  u64 size = 0;
-  for (u8 *at = cstr; *at; ++at) {
-    ++size;
-  }
-  String8 result = {cstr, size};
-  return (result);
+  u8 *ptr = cstr;
+  for (;*ptr != 0; ptr += 1);
+  String8 result = str8_range(cstr, ptr);
+  return result;
 }
 
 function String8
@@ -227,6 +225,14 @@ str8_list_pushf(M_Arena *arena, String8List *list, char *fmt, ...) {
   String8 result = str8_pushfv(arena, fmt, args);
   va_end(args);
   str8_list_push(arena, list, result);
+}
+
+function String16 
+str16_cstring(u16 *cstr) {
+  u16 *ptr = cstr;
+  for (;*ptr != 0; ptr += 1);
+  String16 result = {cstr, (u64)(ptr - cstr)};
+  return result;
 }
 
 //////////////////////////////////////

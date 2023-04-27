@@ -129,6 +129,9 @@
 # define Assert(c)
 #endif
 
+// "negative subscript" is the compiler error you'll see if this fails
+#define StaticAssert(c,l) typedef u8 Glue(l,__LINE__) [(c)?1:-1] 
+
 #define Stringify_(S) #S
 #define Stringify(S) Stringify_(S)
 #define Glue_(A,B) A##B

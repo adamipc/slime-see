@@ -1,15 +1,15 @@
-#version 140
+#version 120
 precision highp float;
 
-attribute vec4 a_position; // The current position of the vertex
+in vec4 a_position; // The current position of the vertex
 
 uniform sampler2D u_texture1; // The previous frame's output from shader 2
 
 uniform float u_time;
 
 uniform float u_speed_multiplier;
-uniform uint u_wall_strategy;
-uniform uint u_color_strategy;
+uniform int u_wall_strategy;
+uniform int u_color_strategy;
 uniform float u_random_steer_factor;
 uniform float u_constant_steer_factor;
 uniform float u_search_radius;
@@ -92,10 +92,10 @@ void main() {
   float randomAngle = 0.0;
   // Wall strategy
   switch (u_wall_strategy) {
-    case 0u:
+    case 0:
       // None
       break;
-    case 1u:
+    case 1:
       // wrap around
       if (y_new > 0.99) { y_new = -0.99; }
       if (y_new < -0.99) { y_new = 0.99; }
@@ -104,9 +104,9 @@ void main() {
       if (x_new < -0.99) { x_new = 0.99; }
       break;
       // BounceRandom
-    case 3u:
+    case 3:
       randomAngle = rand(texcoord+tex_val.xy)*u_random_steer_factor;
-    case 2u:
+    case 2:
       // reverse direction if hitting wall
       if (y_new + speed*sin(direction) > 0.90) {
         float d = atan(sin(direction), cos(direction));
@@ -126,7 +126,7 @@ void main() {
       }
       break;
       // Slow and reverse
-    case 4u:
+    case 4:
       float boundary = 0.75;
       float slowdownFactor = 0.75;
 
@@ -152,28 +152,28 @@ void main() {
 
   // Color strategy
   switch (u_color_strategy) {
-    case 0u:
+    case 0:
       r = sin(direction);
       g = cos(direction);
       b = u_trail_strength;
       break;
-    case 1u:
+    case 1:
       r = speed_var*50.0;
       g = r;
       b = u_trail_strength;
       break;
-    case 2u:
+    case 2:
       r = abs(y_new)/2.0 + 0.5;
       g = abs(x_new)/2.0 + 0.5;
       b = u_trail_strength;
       break;
-    case 3u:
+    case 3:
       r = u_trail_strength;
       g = r;
       b = r;
       break;
       // Color strategy 4: Hue shifting based on position
-    case 4u:
+    case 4:
       float distanceFromCenter = sqrt(x_new * x_new + y_new * y_new);
       float normalizedDistance = distanceFromCenter / 1.3;
       float hue = atan(y_new, x_new) / (2.0 * 3.14159) + 0.5;
@@ -184,7 +184,7 @@ void main() {
       b = u_trail_strength;
       break;
       // Color strategy 5: Gradient based on distance from center
-    case 5u:
+    case 5:
       distanceFromCenter = sqrt(x_new * x_new + y_new * y_new);
       normalizedDistance = distanceFromCenter / 1.3;
       r = mix(0.2, 1.0, normalizedDistance);
@@ -193,7 +193,7 @@ void main() {
       break;
 
       // Color strategy 6: Color oscillation based on time
-    case 6u:
+    case 6:
       float timeFactor = sin(u_time * 0.5);
       r = 0.5 + 0.5 * sin(2.0 * 3.14159 * (x_new + y_new) + timeFactor);
       g = 0.5 + 0.5 * sin(2.0 * 3.14159 * (x_new - y_new) + timeFactor);

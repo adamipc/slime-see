@@ -3,3 +3,6 @@ X(glClearColor, void, (GLclampf red, GLclampf green, GLclampf blue, GLclampf alp
 X(glPolygonMode, void, (GLenum face, GLenum mode))
 X(glGetError, GLenum, (void))
 X(glViewport, void, (GLint x, GLint y, GLsizei width, GLsizei height))
+X(glEnable, void, (GLenum cap))
+X(glTexParameteri, void, (GLenum target, GLenum pname, GLint param))
+X(glTexImage2D, void, (GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const void *pixels))

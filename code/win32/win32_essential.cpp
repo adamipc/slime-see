@@ -203,3 +203,146 @@ os_file_properties(String8 file_name) {
 
   return result;
 }
+
+function b32
+os_file_delete(String8 file_name) {
+  // convert name
+  M_Scratch stratch;
+  String16 file_name16 = str16_from_str8(stratch, file_name);
+
+  // delete file
+  b32 result = DeleteFileW((WCHAR*)file_name16.str);
+
+  return result;
+}
+
+function b32 
+os_file_rename(String8 og_name, String8 new_name) {
+  // convert names
+  M_Scratch stratch;
+  String16 og_name16 = str16_from_str8(stratch, og_name);
+  String16 new_name16 = str16_from_str8(stratch, new_name);
+
+  // rename file
+  b32 result = MoveFileW((WCHAR*)og_name16.str, (WCHAR*)new_name16.str);
+
+  return result;
+}
+
+function b32 
+os_file_make_directory(String8 path) {
+  // convert name
+  M_Scratch stratch;
+  String16 path16 = str16_from_str8(stratch, path);
+
+  // make directory
+  b32 result = CreateDirectoryW((WCHAR*)path16.str, 0);
+
+  return result;
+}
+
+function b32 
+os_file_delete_directory(String8 path) {
+  // convert name
+  M_Scratch stratch;
+  String16 path16 = str16_from_str8(stratch, path);
+
+  // delete directory
+  b32 result = RemoveDirectoryW((WCHAR*)path16.str);
+
+  return result;
+}
+
+function OS_FileIter 
+os_file_iter_init(String8 path) {
+  OS_FileIter result = {};
+  // convert name
+  String8Node nodes[2];
+  String8List list = {};
+  str8_list_push_explicit(&list, path, nodes + 0);
+  str8_list_push_explicit(&list, str8_lit("\\*"), nodes + 1);
+
+  M_Scratch scratch;
+  String8 path_star = str8_join(scratch, &list, 0);
+  // TODO(adam): make unicode conversion take string lists.
+  String16 path16 = str16_from_str8(scratch, path_star);
+
+  // init iterator
+  W32_FileIter *w32_iter = (W32_FileIter*)&result;
+  WIN32_FIND_DATAW find_data = {};
+  w32_iter->handle = FindFirstFileW((WCHAR*)path16.str, &w32_iter->find_data);
+  if (w32_iter->handle != INVALID_HANDLE_VALUE) {
+    w32_iter->done = false;
+  }
+
+  return result;
+}
+
+function b32
+os_file_iter_next(M_Arena *arena, OS_FileIter *iter,
+                                String8 *name_out, FileProperties *prop_out) {
+  b32 result = false;
+
+  W32_FileIter *w32_iter = (W32_FileIter*)iter;
+  if (w32_iter->handle != 0 &&
+      w32_iter->handle != INVALID_HANDLE_VALUE) {
+    for (;!w32_iter->done;) {
+      // skip . and ..
+      WCHAR *file_name = w32_iter->find_data.cFileName;
+      b32 is_dot = file_name[0] == '.' &&
+                   file_name[1] == 0;
+      b32 is_dotdot = file_name[0] == '.' &&
+                      file_name[1] == '.' &&
+                      file_name[2] == 0;
+
+      // setup to emit
+      b32 emit = (!is_dot && !is_dotdot);
+      WIN32_FIND_DATAW data = {};
+      if (emit) {
+        MemoryCopyStruct(&data, &w32_iter->find_data);
+      }
+
+      // increment the iterator
+      if (!FindNextFileW(w32_iter->handle, &w32_iter->find_data)) {
+        w32_iter->done = true;
+      }
+
+      // do the emit if we saved one earlier
+      if (emit) {
+        *name_out = str8_from_str16(arena, str16_cstring((u16*)data.cFileName));
+
+        // get properties
+        prop_out->size = ((u64)data.nFileSizeHigh << 32) | (u64)data.nFileSizeLow;
+        prop_out->flags = w32_file_property_flags_from_attributes(data.dwFileAttributes);
+        prop_out->create_time = w32_dense_time_from_file(data.ftCreationTime);
+        prop_out->modify_time = w32_dense_time_from_file(data.ftLastWriteTime);
+        prop_out->access = w32_access_from_attributes(data.dwFileAttributes);
+
+        result = true;
+        break;
+      }
+    }
+  }
+
+  return result;
+}
+
+function void
+os_file_iter_end(OS_FileIter *iter) {
+  W32_FileIter *w32_iter = (W32_FileIter*)iter;
+  if (w32_iter->handle != 0 &&
+      w32_iter->handle != INVALID_HANDLE_VALUE) {
+    FindClose(w32_iter->handle);
+  }
+}
+
+//////////////////////////////////////
+///// NOTE(adam): Entropy
+
+function void
+os_get_entropy(void *data, u64 size) {
+  HCRYPTPROV prov = 0;
+  CryptAcquireContext(&prov, 0, 0, PROV_DSS, CRYPT_VERIFYCONTEXT);
+  CryptGenRandom(prov, size, (BYTE*)data);
+  CryptReleaseContext(prov, 0);
+}
