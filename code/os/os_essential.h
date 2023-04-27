@@ -9,6 +9,16 @@ struct OS_FileIter {
 };
 
 //////////////////////////////////////
+///// NOTE(adam): Paths
+
+enum OS_SystemPath {
+  OS_SystemPath_CurrentDirectory,
+  OS_SystemPath_Binary,
+  OS_SystemPath_TemporaryDirectory,
+  OS_SystemPath_COUNT,
+};
+
+//////////////////////////////////////
 ///// NOTE(adam): Setup
 
 function void os_init(void);
@@ -44,6 +54,8 @@ function OS_FileIter os_file_iter_init(String8 path);
 function b32  os_file_iter_next(M_Arena *arena, OS_FileIter *iter,
                                 String8 *name_out, FileProperties *prop_out);
 function void os_file_iter_end(OS_FileIter *iter);
+
+function String8 os_file_path(M_Arena *arena, OS_SystemPath path);
 
 //////////////////////////////////////
 ///// NOTE(adam): Time

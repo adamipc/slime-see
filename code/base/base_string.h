@@ -88,6 +88,9 @@ function String8 str8_pushfv(M_Arena *arena, char *fmt, va_list args);
 function String8 str8_pushf(M_Arena *arena, char *fmt, ...);
 function void    str8_list_pushf(M_Arena *arena, String8List *list, char *fmt, ...);
 
+function String8 str8_push_copy(M_Arena *arena, String8 string);
+
+function String16 str16(u16 *str, u64 size);
 function String16 str16_cstring(u16 *cstr);
 
 //////////////////////////////////////

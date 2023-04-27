@@ -227,6 +227,24 @@ str8_list_pushf(M_Arena *arena, String8List *list, char *fmt, ...) {
   str8_list_push(arena, list, result);
 }
 
+function String8
+str8_push_copy(M_Arena *arena, String8 string) {
+  String8 result = {};
+
+  result.str = push_array(arena, u8, string.size + 1);
+  result.size = string.size;
+  MemoryCopy(result.str, string.str, string.size);
+  result.str[result.size] = 0;
+
+  return result;
+}
+
+function String16
+str16(u16 *str, u64 size) {
+  String16 result = {str, size};
+  return (result);
+}
+
 function String16 
 str16_cstring(u16 *cstr) {
   u16 *ptr = cstr;

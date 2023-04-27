@@ -74,6 +74,14 @@ WinMain(HINSTANCE Instance,
 
   M_Scratch scratch;
 
+  String8 current_dir = os_file_path(scratch, OS_SystemPath_CurrentDirectory);
+  printf("current_dir: %.*s\n", str8_expand(current_dir));
+  String8 executable_path = os_file_path(scratch, OS_SystemPath_Binary);
+  printf("executable_path: %.*s\n", str8_expand(executable_path));
+  String8 temp_dir = os_file_path(scratch, OS_SystemPath_TemporaryDirectory);
+  printf("temp_dir: %.*s\n", str8_expand(temp_dir));
+
+#if 0
   // date time encode/decode test
   //
   {
@@ -143,6 +151,7 @@ WinMain(HINSTANCE Instance,
     printf("end: %llu\n", end);
     printf("diff: %llu\n", end - start);
   }
+#endif
 
   String8 error = {};
 

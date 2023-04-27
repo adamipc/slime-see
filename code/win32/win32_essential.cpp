@@ -9,6 +9,9 @@
 global DWORD win32_thread_context_index = 0;
 global u64 w32_ticks_per_second = 1;
 
+global M_Arena w32_perm_arena = {};
+global String8 w32_binary_path = {};
+
 //////////////////////////////////////
 ///// NOTE(adam): Setup
 
@@ -23,6 +26,12 @@ os_init(void) {
     w32_ticks_per_second = perf_freq.QuadPart;
   } 
   timeBeginPeriod(1);
+
+  // arena
+  w32_perm_arena = m_make_arena(os_base_memory());
+
+  // TODO(adam): setup main thread's context here
+  // so we can init file paths and stuff.
 }
 
 //////////////////////////////////////
@@ -422,6 +431,40 @@ os_file_iter_end(OS_FileIter *iter) {
       w32_iter->handle != INVALID_HANDLE_VALUE) {
     FindClose(w32_iter->handle);
   }
+}
+
+function String8
+os_file_path(M_Arena *arena, OS_SystemPath path) {
+  String8 result = {};
+
+  switch (path) {
+    case OS_SystemPath_CurrentDirectory: {
+      u32 size = GetCurrentDirectoryW(0, 0);
+      LPWSTR wstr = (LPWSTR)push_array(arena, u16, size * sizeof(u16));
+      GetCurrentDirectoryW(size, wstr);
+      result = str8_from_str16(arena, str16_cstring((u16*)wstr));
+    } break;
+    case OS_SystemPath_Binary: {
+      if (w32_binary_path.size == 0) {
+        M_Scratch scratch(arena);
+        DWORD cap = 2048;
+        u16 *buffer = push_array(arena, u16, cap);
+        DWORD size = GetModuleFileNameW(0, (WCHAR*)buffer, cap);
+        if (GetLastError() == ERROR_INSUFFICIENT_BUFFER)
+        result = str8_from_str16(arena, str16(buffer, size));
+      }
+    } break;
+    case OS_SystemPath_TemporaryDirectory: {
+      u32 size = GetTempPathW(0, 0);
+      LPWSTR wstr = (LPWSTR)push_array(arena, u16, size * sizeof(u16));
+      GetTempPathW(size, wstr);
+      result = str8_from_str16(arena, str16_cstring((u16*)wstr));
+    } break;
+    default: {
+   } break;
+  }
+
+  return result;
 }
 
 //////////////////////////////////////
