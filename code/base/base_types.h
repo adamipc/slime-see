@@ -160,6 +160,11 @@
 #define GB(x) ((x) << 30)
 #define TB(x) ((x) << 40)
 
+#define Thousand(x) ((x) * 1000)
+#define Million(x) ((x) * 1000000)
+#define Billion(x) ((x) * 1000000000llu)
+#define Trillion(x) ((x) * 1000000000000llu)
+
 #define global static
 #define local static
 #define function static
@@ -469,6 +474,16 @@ enum {
 
 typedef u64 DenseTime;
 
+struct DateTime {
+  u16 msec; // [0,999]
+  u8 sec;   // [0,59]
+  u8 min;   // [0,59]
+  u8 hour;  // [0,23]
+  u8 day;   // [0,30]
+  u8 mon;   // [1,12]
+  i32 year; // 1 = 1 CE; 2020 = 2020 CE; 0 = 1 BCE; -100 = 101 BCE, etc.
+};
+
 //////////////////////////////////////
 ///// NOTE(adam): File Properties
 
@@ -525,6 +540,12 @@ function f32 unlerp_f32(f32 a, f32 x, f32 b);
 
 function f64 lerp(f64 a, f64 t, f64 b);
 function f64 unlerp(f64 a, f64 x, f64 b);
+
+//////////////////////////////////////
+///// NOTE(adam): Signed Encode/Decode
+
+function u64 encode_u64_from_i64(i64 x);
+function i64 decode_i64_from_u64(u64 x);
 
 /////////////////////////////////////
 // NOTE(adam): Compound Type Functions
@@ -593,6 +614,12 @@ function Vec2_f32 interval_center(Interval2_f32 r);
 function Vec2_i32 interval_center(Interval2_i32 r);
 
 function Interval1_f32 interval_axis(Interval2_f32 r, Axis axis);
+
+//////////////////////////////////////
+///// NOTE(adam): Time Functions
+
+function DenseTime dense_time_from_date_time(DateTime *date_time);
+function DateTime date_time_from_dense_time(DenseTime dense_time);
 
 #endif // BASE_TYPES_H
 

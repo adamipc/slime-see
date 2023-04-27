@@ -250,6 +250,28 @@ unlerp(f32 a, f32 x, f32 b) {
 }
 
 //////////////////////////////////////
+///// NOTE(adam): Signed Encode/Decode
+
+function u64
+encode_u64_from_i64(i64 x) {
+  // TODO(adam): rotleft(x, 1)
+  u64 result = (((u64)x) << 1) | (((u64)x) >> 63);
+  return result;
+}
+
+function i64
+decode_i64_from_u64(u64 x) {
+  i64 result = 0;
+  if (x & 1) {
+    result = -(i64)(x >> 1);
+  } else {
+    result =  (i64)(x >> 1);
+  }
+
+  return result;
+}
+
+//////////////////////////////////////
 // NOTE(adam): Compound Type Functions
 
 function Vec2_i32 vec2_i32(i32 x, i32 y) {
@@ -521,6 +543,53 @@ function Interval1_f32 interval_axis(Interval2_f32 r, Axis axis) {
     r.p[0].v[axis],
     r.p[1].v[axis],
   };
+  return result;
+}
+
+//////////////////////////////////////
+///// NOTE(adam): Time Functions
+
+function DenseTime
+dense_time_from_date_time(DateTime *in) {
+  u32 year_encoded = (u32)((i32)in->year + 0x8000);
+  DenseTime result = 0;
+
+  result += year_encoded;
+  result *= 12;
+  result += (in->mon - 1);
+  result *= 31;
+  result += in->day;
+  result *= 24;
+  result += in->hour;
+  result *= 60;
+  result += in->min;
+  result *= 61;
+  result += in->sec;
+  result *= 1000;
+  result += in->msec;
+
+  return result;
+}
+
+function DateTime
+date_time_from_dense_time(DenseTime in) {
+  DateTime result = {};
+
+  result.msec = in % 1000;
+  in /= 1000;
+  result.sec = in % 61;
+  in /= 61;
+  result.min = in % 60;
+  in /= 60;
+  result.hour = in % 24;
+  in /= 24;
+  result.day = in % 31;
+  in /= 31;
+  result.mon = (in % 12) + 1;
+  in /= 12;
+  i32 year_encoded = ((i32)in - 0x8000);
+  result.year = year_encoded;
+
   return result;
 }
 

@@ -46,6 +46,16 @@ function b32  os_file_iter_next(M_Arena *arena, OS_FileIter *iter,
 function void os_file_iter_end(OS_FileIter *iter);
 
 //////////////////////////////////////
+///// NOTE(adam): Time
+
+function DateTime os_now_universal_time(void);
+function DateTime os_local_time_from_universal(DateTime *date_time);
+function DateTime os_universal_time_from_local(DateTime *date_time);
+
+function u64  os_now_microseconds(void);
+function void os_sleep_milliseconds(u64 t);
+
+//////////////////////////////////////
 ///// NOTE(adam): Entropy
 
 function void os_get_entropy(void *data, u64 size);

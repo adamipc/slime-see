@@ -74,6 +74,76 @@ WinMain(HINSTANCE Instance,
 
   M_Scratch scratch;
 
+  // date time encode/decode test
+  //
+  {
+    DateTime date_time = {};
+    date_time.msec = 501;
+    date_time.sec = 1;
+    date_time.min = 0;
+    date_time.hour = 23;
+    date_time.day = 0;
+    date_time.mon = 10;
+    date_time.year = 100;
+
+    DenseTime dense = dense_time_from_date_time(&date_time);
+    DateTime decoded = date_time_from_dense_time(dense);
+
+    Assert(date_time.msec == decoded.msec);
+    Assert(date_time.sec == decoded.sec);
+    Assert(date_time.min == decoded.min);
+    Assert(date_time.hour == decoded.hour);
+    Assert(date_time.day == decoded.day);
+    Assert(date_time.mon == decoded.mon);
+    Assert(date_time.year == decoded.year);
+  }
+
+  // now date time; local time conversion
+  {
+    DateTime now = os_now_universal_time();
+    printf("%04d-%02d-%02d %02d:%02d:%02d.%03d\n",
+           now.year, now.mon, now.day,
+           now.hour, now.min, now.sec, now.msec);
+
+    DateTime now_local = os_local_time_from_universal(&now);
+    printf("%04d-%02d-%02d %02d:%02d:%02d.%03d\n",
+           now_local.year, now_local.mon, now_local.day,
+           now_local.hour, now_local.min, now_local.sec, now_local.msec);
+
+    DateTime round_trip = os_universal_time_from_local(&now_local);
+    Assert(round_trip.msec == now.msec);
+    Assert(round_trip.sec == now.sec);
+    Assert(round_trip.min == now.min);
+    Assert(round_trip.hour == now.hour);
+    Assert(round_trip.day == now.day);
+    Assert(round_trip.mon == now.mon);
+    Assert(round_trip.year == now.year);
+  }
+
+  {
+    os_file_write(str8_lit("test.txt"), str8_lit("hello world"));
+    FileProperties props = os_file_properties(str8_lit("test.txt"));
+    printf("size: %llu\nis folder? %s\n", props.size,
+        (props.flags & FilePropertyFlag_Directory)? "yes":"no");
+
+    DateTime time = date_time_from_dense_time(props.create_time);
+    printf("%04d-%02d-%02d %02d:%02d:%02d.%03d\n",
+           time.year, time.mon, time.day,
+           time.hour, time.min, time.sec, time.msec);
+    os_file_delete(str8_lit("test.txt"));
+  }
+
+  {
+    u64 perf_now = os_now_microseconds();
+    printf("now: %llu\n", perf_now);
+    u64 start = os_now_microseconds();
+    printf("start: %llu\n", start);
+    os_sleep_milliseconds(Thousand(1));
+    u64 end = os_now_microseconds();
+    printf("end: %llu\n", end);
+    printf("diff: %llu\n", end - start);
+  }
+
   String8 error = {};
 
   error = win32_wgl_init(Instance);

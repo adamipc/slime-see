@@ -7,13 +7,22 @@
 ///// NOTE(adam): Variables
 
 global DWORD win32_thread_context_index = 0;
+global u64 w32_ticks_per_second = 1;
 
 //////////////////////////////////////
 ///// NOTE(adam): Setup
 
 function void
 os_init(void) {
+  // setup thread context
   win32_thread_context_index = TlsAlloc();
+
+  // setup precision time
+  LARGE_INTEGER perf_freq = {};
+  if (QueryPerformanceFrequency(&perf_freq)) {
+    w32_ticks_per_second = perf_freq.QuadPart;
+  } 
+  timeBeginPeriod(1);
 }
 
 //////////////////////////////////////
@@ -57,12 +66,91 @@ os_thread_context_get(void) {
 //////////////////////////////////////
 ///// NOTE(adam): Time
 
-function DenseTime
-w32_dense_time_from_file(FILETIME file_time) {
-  DenseTime result = {};
-  result = (f64)file_time.dwLowDateTime / 10000000.0;
-  result += (f64)file_time.dwHighDateTime * 4294967296.0 / 10000000.0;
+function DateTime
+w32_date_time_from_system_time(SYSTEMTIME *in) {
+  DateTime result = {};
+  result.year = in->wYear;
+  result.mon= (u8)in->wMonth;
+  result.day = in->wDay - 1;
+  result.hour = in->wHour;
+  result.min= in->wMinute;
+  result.sec= in->wSecond;
+  result.msec = in->wMilliseconds;
   return result;
+}
+
+function SYSTEMTIME
+w32_system_time_from_date_time(DateTime *in) {
+  SYSTEMTIME result = {};
+  result.wYear = in->year;
+  result.wMonth = in->mon;
+  result.wDay = in->day + 1;
+  result.wHour = in->hour;
+  result.wMinute = in->min;
+  result.wSecond = in->sec;
+  result.wMilliseconds = in->msec;
+  return result;
+}
+
+function DenseTime
+w32_dense_time_from_file_time(FILETIME *file_time) {
+  SYSTEMTIME system_time = {};
+  FileTimeToSystemTime(file_time, &system_time);
+  DateTime date_time = w32_date_time_from_system_time(&system_time);
+  DenseTime result = dense_time_from_date_time(&date_time);
+
+  return result;
+}
+
+function DateTime
+os_now_universal_time(void) {
+  SYSTEMTIME system_time = {};
+  GetSystemTime(&system_time);
+  DateTime result = w32_date_time_from_system_time(&system_time);
+  return result;
+}
+
+function DateTime
+os_local_time_from_universal(DateTime *univ_date_time) {
+  SYSTEMTIME univ_system_time = w32_system_time_from_date_time(univ_date_time);
+  FILETIME univ_file_time = {};
+  SystemTimeToFileTime(&univ_system_time, &univ_file_time);
+  FILETIME local_file_time = {};
+  FileTimeToLocalFileTime(&univ_file_time, &local_file_time);
+  SYSTEMTIME local_system_time = {};
+  FileTimeToSystemTime(&local_file_time, &local_system_time);
+  DateTime result = w32_date_time_from_system_time(&local_system_time);
+  return result;
+}
+
+function DateTime
+os_universal_time_from_local(DateTime *local_date_time) {
+  SYSTEMTIME local_system_time = w32_system_time_from_date_time(local_date_time);
+  FILETIME local_file_time = {};
+  SystemTimeToFileTime(&local_system_time, &local_file_time);
+  FILETIME univ_file_time = {};
+  LocalFileTimeToFileTime(&local_file_time, &univ_file_time);
+  SYSTEMTIME univ_system_time = {};
+  FileTimeToSystemTime(&univ_file_time, &univ_system_time);
+  DateTime result = w32_date_time_from_system_time(&univ_system_time);
+  return result;
+}
+
+function u64
+os_now_microseconds(void) {
+  u64 result = 0;
+  LARGE_INTEGER perf_counter = {};
+  if (QueryPerformanceCounter(&perf_counter)) {
+    u64 ticks = perf_counter.QuadPart;
+    result = ticks*Million(1)/w32_ticks_per_second;
+  }
+
+  return result;
+}
+
+function void
+os_sleep_milliseconds(u64 t) {
+  Sleep((DWORD)t);
 }
 
 //////////////////////////////////////
@@ -196,8 +284,8 @@ os_file_properties(String8 file_name) {
                            &attribs)) {
     result.size = ((u64)attribs.nFileSizeHigh << 32) | (u64)attribs.nFileSizeLow;
     result.flags = w32_file_property_flags_from_attributes(attribs.dwFileAttributes);
-    result.create_time = w32_dense_time_from_file(attribs.ftCreationTime);
-    result.modify_time = w32_dense_time_from_file(attribs.ftLastWriteTime);
+    result.create_time = w32_dense_time_from_file_time(&attribs.ftCreationTime);
+    result.modify_time = w32_dense_time_from_file_time(&attribs.ftLastWriteTime);
     result.access = w32_access_from_attributes(attribs.dwFileAttributes);
   }
 
@@ -314,8 +402,8 @@ os_file_iter_next(M_Arena *arena, OS_FileIter *iter,
         // get properties
         prop_out->size = ((u64)data.nFileSizeHigh << 32) | (u64)data.nFileSizeLow;
         prop_out->flags = w32_file_property_flags_from_attributes(data.dwFileAttributes);
-        prop_out->create_time = w32_dense_time_from_file(data.ftCreationTime);
-        prop_out->modify_time = w32_dense_time_from_file(data.ftLastWriteTime);
+        prop_out->create_time = w32_dense_time_from_file_time(&data.ftCreationTime);
+        prop_out->modify_time = w32_dense_time_from_file_time(&data.ftLastWriteTime);
         prop_out->access = w32_access_from_attributes(data.dwFileAttributes);
 
         result = true;
