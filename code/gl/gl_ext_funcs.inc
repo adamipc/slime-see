@@ -41,4 +41,7 @@ X(glBindRenderbuffer, void, (GLenum target, GLuint renderbuffer))
 X(glRenderbufferStorage, void, (GLenum target, GLenum internalformat, GLsizei width, GLsizei height))
 X(glFramebufferRenderbuffer, void, (GLenum target, GLenum attachment, GLenum renderbuffertarget, GLuint renderbuffer))
 X(glGetFramebufferAttachmentParameteriv, void, (GLenum target, GLenum attachment, GLenum pname, GLint *params))
+X(glBindBufferBase, void, (GLenum target, GLuint index, GLuint buffer))
+X(glBeginTransformFeedback, void, (GLenum primitiveMode))
+X(glEndTransformFeedback, void, (void))
 

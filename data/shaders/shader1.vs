@@ -1,8 +1,9 @@
-#version 120
+#version 140
 precision highp float;
 
-in vec4 a_position; // The current position of the vertex
+attribute vec4 a_position; // The current position of the vertex
 
+uniform sampler2D u_texture0; 
 uniform sampler2D u_texture1; // The previous frame's output from shader 2
 
 uniform float u_time;

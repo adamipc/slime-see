@@ -1,4 +1,4 @@
-#version 120
+#version 140
 precision highp float;
 uniform sampler2D u_texture0; // A texture input - the output of shader 1
 uniform sampler2D u_texture1; // A texture input - the previous frame's output from shader 2

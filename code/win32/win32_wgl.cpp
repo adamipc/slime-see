@@ -3,7 +3,9 @@
 LRESULT CALLBACK bootstrap_wndproc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
   switch (message)
   {
-    case WM_CREATE: {
+    case WM_CLOSE:
+    case WM_DESTROY: {
+      PostQuitMessage(0);
     } break;
     default: {
       return DefWindowProc(hWnd, message, wParam, lParam);
@@ -29,13 +31,21 @@ win32_create_opengl_window(HINSTANCE Instance, WNDPROC window_proc) {
       goto done;
     }
 
+    int width = 1280;
+    int height = 720;
+    RECT window_rect = {};
+    window_rect.left = 50;
+    window_rect.top = 50;
+    window_rect.right = window_rect.left + width;
+    window_rect.bottom = window_rect.top + height;
+    AdjustWindowRect(&window_rect, WS_OVERLAPPEDWINDOW, true);
     HWND hWnd = CreateWindowA(window_class.lpszClassName,
                   "My Window",
-                  WS_TILEDWINDOW,
-                  CW_USEDEFAULT,
-                  CW_USEDEFAULT,
-                  CW_USEDEFAULT,
-                  CW_USEDEFAULT,
+                  WS_OVERLAPPEDWINDOW,
+                  window_rect.left,
+                  window_rect.top,
+                  window_rect.right - window_rect.left,
+                  window_rect.bottom - window_rect.top,
                   0,
                   0,
                   Instance,
@@ -59,7 +69,7 @@ win32_create_opengl_window(HINSTANCE Instance, WNDPROC window_proc) {
       WGL_ACCELERATION_ARB, WGL_FULL_ACCELERATION_ARB,
       WGL_SWAP_METHOD_ARB, WGL_SWAP_EXCHANGE_ARB,
       WGL_SUPPORT_OPENGL_ARB, TRUE,
-      WGL_DOUBLE_BUFFER_ARB, TRUE,
+      WGL_DOUBLE_BUFFER_ARB, FALSE,
       WGL_PIXEL_TYPE_ARB, WGL_TYPE_RGBA_ARB,
       WGL_COLOR_BITS_ARB, 24,
       WGL_RED_BITS_ARB,    8,
@@ -89,10 +99,10 @@ win32_create_opengl_window(HINSTANCE Instance, WNDPROC window_proc) {
 
   if (!error) {
     int attribs[] = {
-      WGL_CONTEXT_MAJOR_VERSION_ARB, 3,
-      WGL_CONTEXT_MINOR_VERSION_ARB, 0,
+      WGL_CONTEXT_MAJOR_VERSION_ARB, 4,
+      WGL_CONTEXT_MINOR_VERSION_ARB, 6,
       WGL_CONTEXT_FLAGS_ARB, WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB,
-      WGL_CONTEXT_PROFILE_MASK_ARB, WGL_CONTEXT_CORE_PROFILE_BIT_ARB,
+      WGL_CONTEXT_PROFILE_MASK_ARB, WGL_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB,
       0
     };
 
@@ -172,7 +182,7 @@ win32_wgl_init(HINSTANCE Instance) {
   if (!error) {
     HWND hWnd = CreateWindowA(window_class.lpszClassName,
                   "My Window",
-                  WS_OVERLAPPEDWINDOW,
+                  WS_BORDER,
                   CW_USEDEFAULT,
                   CW_USEDEFAULT,
                   CW_USEDEFAULT,

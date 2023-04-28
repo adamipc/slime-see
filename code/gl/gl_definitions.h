@@ -5,18 +5,42 @@
 #define GL_FALSE                          0
 #define GL_NO_ERROR                       0
 
+#define GL_POINTS                         0x0000
 #define GL_TRIANGLES                      0x0004
+#define GL_TRIANGLE_FAN                   0x0006
 
 #define GL_FRONT_AND_BACK                 0x0408
 
-#define GL_FLOAT                          0x1406
+#define GL_TEXTURE_2D                     0x0DE1
+
+#define GL_UNSIGNED_BYTE                  0x1401
 #define GL_UNSIGNED_INT                   0x1405
+#define GL_FLOAT                          0x1406
 
 #define GL_LINE                           0x1B01
 
+#define GL_RGBA                           0x1908
+
 #define GL_VERSION                        0x1F02
 
+#define GL_NEAREST                        0x2600
+
+#define GL_TEXTURE_MAG_FILTER             0x2800
+#define GL_TEXTURE_MIN_FILTER             0x2801
+#define GL_TEXTURE_WRAP_S                 0x2802
+#define GL_TEXTURE_WRAP_T                 0x2803
+
 #define GL_COLOR_BUFFER_BIT               0x00004000
+
+#define GL_CLAMP_TO_EDGE                  0x812F
+
+#define GL_DEPTH_COMPONENT16              0x81A5
+#define GL_DEPTH_COMPONENT24              0x81A6
+
+#define GL_DEBUG_TYPE_ERROR               0x824C
+
+#define GL_TEXTURE0                       0x84C0
+#define GL_TEXTURE1                       0x84C1
 
 #define GL_PROGRAM_POINT_SIZE             0x8642
 
@@ -34,34 +58,25 @@
 #define GL_LINK_STATUS                    0x8B82
 
 #define GL_SEPARATE_ATTRIBS               0x8C8D
+#define GL_TRANSFORM_FEEDBACK_BUFFER      0x8C8E
+
+#define GL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE           0x8CD0
+#define GL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME           0x8CD1
+#define GL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL         0x8CD2
+#define GL_FRAMEBUFFER_ATTACHMENT_TEXTURE_CUBE_MAP_FACE 0x8CD3
+#define GL_FRAMEBUFFER_COMPLETE           0x8CD5
+
+#define GL_COLOR_ATTACHMENT0              0x8CE0
+
+#define GL_DEPTH_ATTACHMENT               0x8D00
+#define GL_STENCIL_ATTACHMENT             0x8D20
+#define GL_FRAMEBUFFER                    0x8D40
+#define GL_RENDERBUFFER                   0x8D41
 
 #define GL_TRANSFORM_FEEDBACK             0x8E22
 
-#define GL_TEXTURE_2D                     0x0DE1
-#define GL_TEXTURE_WRAP_S                 0x2802
-#define GL_TEXTURE_WRAP_T                 0x2803
-#define GL_CLAMP_TO_EDGE                  0x812F
-#define GL_TEXTURE_MIN_FILTER             0x2801
-#define GL_TEXTURE_MAG_FILTER             0x2800
-#define GL_NEAREST                        0x2600
-#define GL_FRAMEBUFFER                    0x8D40
-#define GL_RGBA                           0x1908
-#define GL_UNSIGNED_BYTE                  0x1401
-#define GL_COLOR_ATTACHMENT0              0x8CE0
-#define GL_TEXTURE0                       0x84C0
-#define GL_TEXTURE1                       0x84C1
 #define GL_DEBUG_OUTPUT                   0x92E0
-#define GL_DEBUG_TYPE_ERROR               0x824C
-#define GL_FRAMEBUFFER_COMPLETE           0x8CD5
-#define GL_RENDERBUFFER                   0x8D41
-#define GL_DEPTH_COMPONENT16              0x81A5
-#define GL_DEPTH_ATTACHMENT               0x8D00
-#define GL_STENCIL_ATTACHMENT             0x8D20
-#define GL_DEPTH_COMPONENT24              0x81A6
-#define GL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE 0x8CD0
-#define GL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME 0x8CD1
-#define GL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL 0x8CD2
-#define GL_FRAMEBUFFER_ATTACHMENT_TEXTURE_CUBE_MAP_FACE 0x8CD3
+
 
 
 typedef int           GLsizei;

@@ -1,4 +1,4 @@
-#version 120
+#version 140
 attribute vec2 a_vertex;
 
 varying vec4 loc; // location in clip space
