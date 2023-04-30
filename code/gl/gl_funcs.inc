@@ -9,3 +9,7 @@ X(glTexImage2D, void, (GLenum target, GLint level, GLint internalformat, GLsizei
 X(glReadPixels, void, (GLint x, GLint y, GLsizei width, GLsizei height, GLenum format, GLenum type, void *pixels))
 X(glFinish, void, (void))
 X(glFlush, void, (void))
+X(glDrawArrays, void, (GLenum mode, GLint first, GLsizei count))
+X(glDrawElements, void, (GLenum mode, GLsizei count, GLenum type, const void *indices))
+X(glGenTextures, void, (GLsizei n, GLuint *textures))
+X(glBindTexture, void, (GLenum target, GLuint texture))

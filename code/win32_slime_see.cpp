@@ -424,7 +424,7 @@ create_pipeline(M_Arena *arena, Preset *preset, int width, int height) {
     glBufferData(GL_ARRAY_BUFFER, pipeline->number_of_positions*4*4, initial_positions, GL_DYNAMIC_COPY);
 
     // Transform feedback
-    glCreateTransformFeedbacks(1, &transform_feedback);
+    glGenTransformFeedbacks(1, &transform_feedback);
     glBindTransformFeedback(GL_TRANSFORM_FEEDBACK, transform_feedback);
 
 #   define X(U) pipeline->##U##_location_1 = glGetUniformLocation(pipeline->shader1, #U);
@@ -474,7 +474,7 @@ create_pipeline(M_Arena *arena, Preset *preset, int width, int height) {
   }
 
   // Create framebuffer to draw to
-  glCreateFramebuffers(1, &pipeline->framebuffer);
+  glGenFramebuffers(1, &pipeline->framebuffer);
   glBindFramebuffer(GL_FRAMEBUFFER, pipeline->framebuffer);
   printf("framebuffer: %d\n", pipeline->framebuffer);
 
@@ -681,6 +681,8 @@ WinMain(HINSTANCE Instance,
   W32_OpenGLWindow window = {};
   if (!error) {
     window = win32_create_opengl_window(Instance, &window_proc, width, height);
+  } else {
+    print_str8(error);
   }
 
   if (window.window != 0) {
