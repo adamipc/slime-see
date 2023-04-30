@@ -20,6 +20,8 @@
 #include "gl/gl.cpp"
 #include "win32/win32_wgl.cpp"
 
+global bool running = false;
+
 LRESULT CALLBACK window_proc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
   switch (message)
   {
@@ -28,6 +30,11 @@ LRESULT CALLBACK window_proc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPar
       int width = LOWORD(lParam);
       int height = HIWORD(lParam);
       glViewport(0, 0, width, height);
+    } break;
+    case WM_DESTROY: {
+      running = false;
+      PostQuitMessage(0);
+      return 0;
     } break;
     case WM_CREATE: {
     } break;
@@ -714,7 +721,11 @@ WinMain(HINSTANCE Instance,
 
   u64 last_time = os_now_microseconds();
   u64 frame = 0;
+  running = true;
   for(;;) {
+    if (!running) {
+      break;
+    }
     MSG msg = {};
     while(PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
       TranslateMessage(&msg);
@@ -777,6 +788,9 @@ WinMain(HINSTANCE Instance,
     last_time = end_time;
     frame++;
   }
+
+dbl_break:
+  ;
 
   if (error.size != 0) {
     fprintf(stdout, "%.*s\n", str8_expand(error));
