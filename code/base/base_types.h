@@ -21,7 +21,7 @@
 
 # if defined(_M_AMD64)
 #  define ARCH_X64 1
-# elif defined(_M_I86)
+# elif defined(_M_IX86)
 #  define ARCH_X86 1
 # elif defined(_M_ARM)
 #  define ARCH_ARM 1
