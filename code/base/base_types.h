@@ -23,7 +23,7 @@
 #  define ARCH_X64 1
 # elif defined(_M_I86)
 #  define ARCH_X86 1
-# elif defined_M_ARM)
+# elif defined(_M_ARM)
 #  define ARCH_ARM 1
 # elif defined(__aarch64__)
 #  define ARCH_ARM64 1
@@ -44,7 +44,7 @@
 #  define ARCH_X64 1
 # elif defined(_M_I86)
 #  define ARCH_X86 1
-# elif defined_M_ARM)
+# elif defined(_M_ARM)
 #  define ARCH_ARM 1
 # elif defined(__aarch64__)
 #  define ARCH_ARM64 1
@@ -69,7 +69,7 @@
 #  define ARCH_X64 1
 # elif defined(_M_I86)
 #  define ARCH_X86 1
-# elif defined_M_ARM)
+# elif defined(_M_ARM)
 #  define ARCH_ARM 1
 # elif defined(__aarch64__)
 #  define ARCH_ARM64 1
