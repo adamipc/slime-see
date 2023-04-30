@@ -682,7 +682,7 @@ WinMain(HINSTANCE Instance,
 
   GLenum error_code = GL_NO_ERROR;
 
-  Preset preset = get_preset(PresetName_Globe);
+  Preset preset = get_preset(PresetName_ShiftingWeb);
 
   Pipeline *pipeline = create_pipeline(scratch, &preset, width, height);
   // Common uniforms

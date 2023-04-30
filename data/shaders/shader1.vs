@@ -177,7 +177,7 @@ void main() {
     case 4:
       float distanceFromCenter = sqrt(x_new * x_new + y_new * y_new);
       float normalizedDistance = distanceFromCenter / 1.7;
-      float hue = atan(y_new, x_new) / (2.0 * 3.14159) + 0.5;
+      float hue = atan(y_new, x_new) / (2.0 * 3.14159) + mod(u_time/10.0,1.0);
       vec3 hsv = vec3(hue, 1.0-normalizedDistance, 1.0);
       vec3 rgb = hsv2rgb(hsv); 
       r = rgb.r;
