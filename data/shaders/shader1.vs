@@ -176,13 +176,13 @@ void main() {
       // Color strategy 4: Hue shifting based on position
     case 4:
       float distanceFromCenter = sqrt(x_new * x_new + y_new * y_new);
-      float normalizedDistance = distanceFromCenter / 1.3;
+      float normalizedDistance = distanceFromCenter / 1.7;
       float hue = atan(y_new, x_new) / (2.0 * 3.14159) + 0.5;
       vec3 hsv = vec3(hue, 1.0-normalizedDistance, 1.0);
       vec3 rgb = hsv2rgb(hsv); 
       r = rgb.r;
       g = rgb.g;
-      b = u_trail_strength;
+      b = rgb.b;
       break;
       // Color strategy 5: Gradient based on distance from center
     case 5:

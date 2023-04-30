@@ -16,7 +16,7 @@ LRESULT CALLBACK bootstrap_wndproc(HWND hWnd, UINT message, WPARAM wParam, LPARA
 }
 
 function W32_OpenGLWindow
-win32_create_opengl_window(HINSTANCE Instance, WNDPROC window_proc) {
+win32_create_opengl_window(HINSTANCE Instance, WNDPROC window_proc, int width, int height) {
   String8 error = {};
 
   HWND graphics_window;
@@ -31,8 +31,6 @@ win32_create_opengl_window(HINSTANCE Instance, WNDPROC window_proc) {
       goto done;
     }
 
-    int width = 1280;
-    int height = 720;
     RECT window_rect = {};
     window_rect.left = 50;
     window_rect.top = 50;
@@ -69,7 +67,7 @@ win32_create_opengl_window(HINSTANCE Instance, WNDPROC window_proc) {
       WGL_ACCELERATION_ARB, WGL_FULL_ACCELERATION_ARB,
       WGL_SWAP_METHOD_ARB, WGL_SWAP_EXCHANGE_ARB,
       WGL_SUPPORT_OPENGL_ARB, TRUE,
-      WGL_DOUBLE_BUFFER_ARB, FALSE,
+      WGL_DOUBLE_BUFFER_ARB, TRUE,
       WGL_PIXEL_TYPE_ARB, WGL_TYPE_RGBA_ARB,
       WGL_COLOR_BITS_ARB, 24,
       WGL_RED_BITS_ARB,    8,
