@@ -251,6 +251,11 @@ win32_wgl_init(HINSTANCE Instance) {
 
       BOOL unregister = UnregisterClassA(BOOTSTRAP_WINDOW_CLASS_NAME, Instance);
       Assert(unregister);
+
+      // Clear the message queue
+      MSG msg = {};
+      while(PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
+      }
     }
   }
 
