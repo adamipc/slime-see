@@ -128,7 +128,7 @@ get_preset(PresetNames preset_name) {
 
   switch (preset_name) {
     case PresetName_GreenSlime: {
-      result.number_of_points = power_of_two(22);
+      result.number_of_points = power_of_two(18);
       result.starting_arrangement = StartingArrangement_Origin;
       result.average_starting_speed = 0.0f;
       result.starting_speed_spread = 0.3f;
@@ -164,7 +164,7 @@ get_preset(PresetNames preset_name) {
       result.blurring = 1.0f;
     } break;
     case PresetName_SlimeRing: {
-      result.number_of_points = power_of_two(21);
+      result.number_of_points = power_of_two(18);
       result.starting_arrangement = StartingArrangement_Ring;
       result.average_starting_speed = 0.1f;
       result.starting_speed_spread = 0.1f;
@@ -691,7 +691,7 @@ WinMain(HINSTANCE Instance,
 
   GLenum error_code = GL_NO_ERROR;
 
-  Preset preset = get_preset(PresetName_ShiftingWeb);
+  Preset preset = get_preset(PresetName_CollapsingBubble);
 
   Pipeline *pipeline = create_pipeline(scratch, &preset, width, height);
   // Common uniforms

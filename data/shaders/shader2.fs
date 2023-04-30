@@ -11,8 +11,8 @@ varying vec4 loc; // from the vertex shader, used to compute texture locations
 
 // For blurring
 const float Directions = 8.0;
-const float Quality = 1.0; // 3 for snowflake
-const float Radius = 1.0/1800.0; // TODO pass in resolution
+const float Quality = 2.0; // 3 for snowflake
+const float Radius = 1.0/1200.0; // TODO pass in resolution
 float pixelCount = 1.0;
 
 void main() {
