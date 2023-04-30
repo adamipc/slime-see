@@ -92,20 +92,17 @@ void main() {
 
   float randomAngle = 0.0;
   // Wall strategy
-  /*
   switch (u_wall_strategy) {
     case 0:
       // None
       break;
     case 1:
-    */
       // wrap around
       if (y_new > 0.99) { y_new = -0.99; }
       if (y_new < -0.99) { y_new = 0.99; }
 
       if (x_new > 0.99) { x_new = -0.99; }
       if (x_new < -0.99) { x_new = 0.99; }
-      /*
       break;
       // BounceRandom
     case 3:
@@ -144,7 +141,6 @@ void main() {
       }
       break;
   }
-  */
 
   // Update position based on direction
   y_new += speed*u_speed_multiplier*sin(direction);
@@ -156,7 +152,6 @@ void main() {
   float b = 0.0;
 
   // Color strategy
-  /*
   switch (u_color_strategy) {
     case 0:
       r = sin(direction);
@@ -169,11 +164,9 @@ void main() {
       b = u_trail_strength;
       break;
     case 2:
-    */
       r = abs(y_new)/2.0 + 0.5;
       g = abs(x_new)/2.0 + 0.5;
       b = u_trail_strength;
-      /*
       break;
     case 3:
       r = u_trail_strength;
@@ -208,7 +201,6 @@ void main() {
       b = u_trail_strength;
       break;
   }
-  */
 
   v_color = vec4(r, g, b, 1.0);
 
