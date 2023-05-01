@@ -29,7 +29,7 @@ enum {
   PresetSlot_Beat = 2,
 };
 
-struct LoadPresetData {
+struct PresetData {
   PresetSlot preset_slot;
   PresetNames preset_name;
 };

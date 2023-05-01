@@ -7,7 +7,7 @@ generate_initial_positions(M_Arena *arena, Preset *preset) {
     f32 initial_speed = preset->average_starting_speed;
     u64 n = preset->number_of_points;
     f32 *result = push_array(arena, f32, n*4);
-    // Ring arrangement
+    printf("Starting arrangement: %d\n", preset->starting_arrangement);
     for (u64 i = 0; i < n; ++i) {
       f32 pi_times_2_over_n = pi_f32*2.0f/((f32)n);
       f32 frac_pi_2 = pi_f32/2.0f;
@@ -28,12 +28,15 @@ generate_initial_positions(M_Arena *arena, Preset *preset) {
           x = rand()/(f32)RAND_MAX*2.0f - 1.0f;
           y = rand()/(f32)RAND_MAX*2.0f - 1.0f;
           direction = rand()/(f32)RAND_MAX;
-       } break;
-        case StartingArrangement_Origin: {
-          x = 0.0f;
-          y = 0.0f;
-          direction = 1.0 + (angle+frac_pi_2) /1000.f;
-       } break;
+        } break;
+         case StartingArrangement_Origin: {
+           x = 0.0f;
+           y = 0.0f;
+           direction = 1.0 + (angle+frac_pi_2) /1000.f;
+        } break;
+        default: {
+          printf("Unknown starting arrangement: %d\n", preset->starting_arrangement);
+        } break;
       }
       // print a sample
       //if (i % 1000 == 0) {
@@ -46,6 +49,59 @@ generate_initial_positions(M_Arena *arena, Preset *preset) {
     }
 
     return result;
+}
+
+function void
+pipeline_create_target_textures(Pipeline *pipeline, int width, int height) {
+  if (pipeline->texture0) {
+    glDeleteTextures(1, &pipeline->texture0);
+  }
+  if (pipeline->texture1) {
+    glDeleteTextures(1, &pipeline->texture1);
+  }
+
+  // A texture for storing the output of shader1
+  glGenTextures(1, &pipeline->texture0);
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_2D, pipeline->texture0);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE); // GL_REPEAT
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE); // GL_REPEAT
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);   // GL_LINEAR
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);   // GL_LINEAR
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+
+  // A texture for storing the output of shader2
+  glGenTextures(1, &pipeline->texture1);
+  glActiveTexture(GL_TEXTURE1);
+  glBindTexture(GL_TEXTURE_2D, pipeline->texture1);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE); // GL_REPEAT
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE); // GL_REPEAT
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);   // GL_LINEAR
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);   // GL_LINEAR
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+}
+
+function void
+pipeline_generate_initial_positions(M_Arena *arena, Pipeline *pipeline, Preset *preset) {
+  u64 seed =0;
+  os_get_entropy(&seed, sizeof(seed));
+  srand(seed);
+
+  M_Temp restore_point = m_begin_temp(arena);
+  f32 *initial_positions = generate_initial_positions(arena, preset);
+  if (pipeline->position_buffers[1] != 0) {
+    glDeleteBuffers(2, pipeline->position_buffers);
+  }
+
+  pipeline->number_of_positions = preset->number_of_points;
+  // Make buffers for holding position data, they will alternate
+  glGenBuffers(2, pipeline->position_buffers);
+  glBindBuffer(GL_ARRAY_BUFFER, pipeline->position_buffers[0]);
+  glBufferData(GL_ARRAY_BUFFER, pipeline->number_of_positions*4*4, initial_positions, GL_DYNAMIC_COPY);
+  glBindBuffer(GL_ARRAY_BUFFER, pipeline->position_buffers[1]);
+  glBufferData(GL_ARRAY_BUFFER, pipeline->number_of_positions*4*4, initial_positions, GL_DYNAMIC_COPY);
+
+  m_end_temp(restore_point);
 }
 
 function Pipeline*
@@ -69,7 +125,6 @@ create_pipeline(M_Arena *arena, Preset *preset, int width, int height) {
 
   GLuint transform_feedback = 0;
 
-  pipeline->number_of_positions = preset->number_of_points;
   if (pipeline->shader1 != 0) {
     glEnable(GL_PROGRAM_POINT_SIZE);
     
@@ -77,17 +132,7 @@ create_pipeline(M_Arena *arena, Preset *preset, int width, int height) {
     pipeline->a_position_location = glGetAttribLocation(pipeline->shader1, "a_position");
     glEnableVertexAttribArray(pipeline->a_position_location);
 
-    u64 seed =0;
-    os_get_entropy(&seed, sizeof(seed));
-    srand(seed);
-
-    f32 *initial_positions = generate_initial_positions(arena, preset);
-    // Make buffers for holding position data, they will alternate
-    glGenBuffers(2, pipeline->position_buffers);
-    glBindBuffer(GL_ARRAY_BUFFER, pipeline->position_buffers[0]);
-    glBufferData(GL_ARRAY_BUFFER, pipeline->number_of_positions*4*4, initial_positions, GL_DYNAMIC_COPY);
-    glBindBuffer(GL_ARRAY_BUFFER, pipeline->position_buffers[1]);
-    glBufferData(GL_ARRAY_BUFFER, pipeline->number_of_positions*4*4, initial_positions, GL_DYNAMIC_COPY);
+    pipeline_generate_initial_positions(arena, pipeline, preset);
 
     // Transform feedback
     glGenTransformFeedbacks(1, &transform_feedback);
@@ -173,25 +218,7 @@ create_pipeline(M_Arena *arena, Preset *preset, int width, int height) {
 
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-  // A texture for storing the output of shader1
-  glGenTextures(1, &pipeline->texture0);
-  glActiveTexture(GL_TEXTURE0);
-  glBindTexture(GL_TEXTURE_2D, pipeline->texture0);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE); // GL_REPEAT
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE); // GL_REPEAT
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);   // GL_LINEAR
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);   // GL_LINEAR
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
-
-  // A texture for storing the output of shader2
-  glGenTextures(1, &pipeline->texture1);
-  glActiveTexture(GL_TEXTURE1);
-  glBindTexture(GL_TEXTURE_2D, pipeline->texture1);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE); // GL_REPEAT
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE); // GL_REPEAT
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);   // GL_LINEAR
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);   // GL_LINEAR
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+  pipeline_create_target_textures(pipeline, width, height);
 
   return pipeline;
 }

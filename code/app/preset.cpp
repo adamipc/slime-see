@@ -1,5 +1,44 @@
 #include "app/preset.h"
 
+function u32
+random_range(u32 min, u32 max) {
+  u32 result = min + (rand() % (max - min));
+  return result;
+}
+
+function Preset
+randomize_preset(M_Arena *arena, Preset *existing_preset) {
+  Preset result = {};
+
+  u64 seed =0;
+  os_get_entropy(&seed, sizeof(seed));
+  srand(seed);
+
+  if (existing_preset) {
+    result = *existing_preset;
+  }
+
+  result.number_of_points = power_of_two(random_range(12, 21)); // 2048 - 2097152
+  result.starting_arrangement = (StartingArrangement)random_range(0, StartingArrangement_COUNT);
+  result.average_starting_speed = random_range(0, 100) / 100.0f; // 0.0 - 1.0
+  result.starting_speed_spread = random_range(0, 100) / 100.0f;  // 0.0 - 1.0
+
+  // TODO(adam): Do we want ro randomize this? Currently all presets use the same value
+  result.speed_multiplier = 1.0f;
+  result.point_size = (random_range(0, 10) / 2.5f) + 1.0f;       // 1.0 - 5.0
+  result.random_steer_factor = random_range(5, 100) / 1000.0f;   // 0.005 - 0.1
+  result.constant_steer_factor = random_range(0, 500) / 1000.0f; // 0.0 - 0.5
+  result.trail_strength = random_range(0, 200) / 1000.0f;        // 0.0 - 0.2
+  result.search_radius = random_range(10, 100) / 1000.0f;        // 0.01 - 0.1
+  result.wall_strategy = (WallStrategy)random_range(0, WallStrategy_COUNT);
+  result.color_strategy = (ColorStrategy)random_range(0, ColorStrategy_COUNT);
+
+  result.fade_speed = random_range(0, 100) / 1000.0f; // 0.0 - 0.1
+  result.blurring = random_range(10, 100) / 100.0f;  // 0.1 - 1.0
+
+  return result;
+}
+
 function Preset
 get_preset(PresetNames preset_name) {
   Preset result = {};

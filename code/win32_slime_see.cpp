@@ -162,8 +162,29 @@ WinMain(HINSTANCE Instance,
          node = node->next) {
       switch (node->event) {
         case InputEvent_LoadPreset: {
-          LoadPresetData *data = (LoadPresetData *)node->data;
-          preset = get_preset(data->preset_name);
+          PresetData *data = (PresetData *)node->data;
+          if (data->preset_slot == PresetSlot_Primary) {
+            slimesee->preset = get_preset(data->preset_name);
+          } else {
+            printf("Unhandled preset slot: %d\n", data->preset_slot);
+          }
+        } break;
+        case InputEvent_RandomizePreset: {
+          PresetData *data = (PresetData *)node->data;
+          if (data->preset_slot == PresetSlot_Primary) {
+            slimesee->preset = randomize_preset(scratch, &preset);
+          } else {
+            printf("Unhandled preset slot: %d\n", data->preset_slot);
+          }
+        } break;
+        case InputEvent_ResetPoints: {
+          slimesee_reset_points(scratch, slimesee);
+        } break;
+        case InputEvent_ClearTextures: {
+          slimesee_clear_textures(slimesee);
+        } break;
+        default: {
+          printf("Unhandled event: %02x\n", node->event);
         } break;
       }
     };
@@ -173,7 +194,6 @@ WinMain(HINSTANCE Instance,
 
     glViewport(0, 0, width, height);
 
-    slimesee->preset = preset;
     slimesee_draw(slimesee, u_time);
 
     error_code = glGetError();

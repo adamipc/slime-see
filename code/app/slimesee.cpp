@@ -16,6 +16,16 @@ struct shader_1_uniforms {
 };
 
 function void
+slimesee_reset_points(M_Arena *arena, SlimeSee *slimesee) {
+    pipeline_generate_initial_positions(arena, &slimesee->pipeline, &slimesee->preset);
+}
+
+function void
+slimesee_clear_textures(SlimeSee *slimesee) {
+  pipeline_create_target_textures(&slimesee->pipeline, slimesee->width, slimesee->height);
+}
+
+function void
 draw_shader_1(Pipeline *pipeline, shader_1_uniforms *uniforms) {
   // Draw shader 1 to the framebuffer
   // bind textures on corresponding texture units
@@ -122,6 +132,8 @@ draw_shader_2(Pipeline *pipeline, shader_2_uniforms *uniforms) {
 function SlimeSee*
 slimesee_init(M_Arena *arena, Preset *preset, int width, int height) {
   SlimeSee *slimesee = push_array(arena, SlimeSee, 1);
+  slimesee->width = width;
+  slimesee->height = height;
   slimesee->preset = *preset;
   slimesee->pipeline = *create_pipeline(arena, preset, width, height);
   return slimesee;

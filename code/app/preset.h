@@ -52,6 +52,8 @@ struct Preset {
 
 typedef u8 PresetNames;
 enum{
+  PresetName_None = 0,
+
   PresetName_GreenSlime,
   PresetName_CollapsingBubble,
   PresetName_SlimeRing,
@@ -62,6 +64,10 @@ enum{
   PresetName_Explode,
   PresetName_Tartan,
   PresetName_Globe,
+
+  PresetName_COUNT,
 };
+
+function Preset randomize_preset(M_Arena *arena, Preset *existing_preset);
 
 #endif // PRESET_H

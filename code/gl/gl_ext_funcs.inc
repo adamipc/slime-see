@@ -40,4 +40,5 @@ X(glGetFramebufferAttachmentParameteriv, void, (GLenum target, GLenum attachment
 X(glBindBufferBase, void, (GLenum target, GLuint index, GLuint buffer))
 X(glBeginTransformFeedback, void, (GLenum primitiveMode))
 X(glEndTransformFeedback, void, (void))
+X(glDeleteBuffers, void, (GLsizei n, const GLuint *buffers))
 
