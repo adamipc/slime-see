@@ -13,15 +13,15 @@ generate_initial_positions(M_Arena *arena, Preset *preset) {
       f32 frac_pi_2 = pi_f32/2.0f;
       f32 angle = (f32)i * pi_times_2_over_n;
       f32 distance = 0.7f; // distance to center
-      f32 x;
-      f32 y;
-      f32 direction;
-      f32 speed = (rand()/(f32)RAND_MAX*0.01f*speed_randomness + 0.01 * initial_speed)/1000.f; 
+      f32 x = 0.f;
+      f32 y = 0.f;
+      f32 direction = 1.f;
+      f32 speed = (rand()/(f32)RAND_MAX*0.01f*speed_randomness + 0.01f * initial_speed)/1000.f; 
       switch (preset->starting_arrangement) {
         case StartingArrangement_Ring: {
-          x = sin(angle)*distance;
-          y = -cos(angle)*distance;
-          direction = 1.0 + (angle+frac_pi_2) /1000.f;
+          x = (f32)sin(angle)*distance;
+          y = -(f32)cos(angle)*distance;
+          direction = 1.0f + (angle+frac_pi_2) /1000.f;
         } break;
         case StartingArrangement_Random: {
           // x and y between -1.0 and 1.0, direction between 0.0 and 1.0
@@ -32,7 +32,7 @@ generate_initial_positions(M_Arena *arena, Preset *preset) {
          case StartingArrangement_Origin: {
            x = 0.0f;
            y = 0.0f;
-           direction = 1.0 + (angle+frac_pi_2) /1000.f;
+           direction = 1.0f + (angle+frac_pi_2) /1000.f;
         } break;
         default: {
           printf("Unknown starting arrangement: %d\n", preset->starting_arrangement);
@@ -85,7 +85,7 @@ function void
 pipeline_generate_initial_positions(M_Arena *arena, Pipeline *pipeline, Preset *preset) {
   u64 seed =0;
   os_get_entropy(&seed, sizeof(seed));
-  srand(seed);
+  srand((u32)seed);
 
   M_Temp restore_point = m_begin_temp(arena);
   f32 *initial_positions = generate_initial_positions(arena, preset);

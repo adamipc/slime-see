@@ -277,10 +277,10 @@ typedef void VoidFunc(void);
 ////////////////////////////////
 // NOTE(adam): Helpful Constants
 
-global i8   min_i8  = (i8) 0x80; 
-global i16  min_i16 = (i16)0x8000; 
-global i32  min_i32 = (i32)0x80000000; 
-global i64  min_i64 = (i64)0x800000000000000llu; 
+global i8   min_i8  = (i8) -0x80; 
+global i16  min_i16 = (i16)-0x8000; 
+global i32  min_i32 = (i32) 0x80000000; 
+global i64  min_i64 = (i64) 0x800000000000000llu; 
 
 global i8   max_i8  = (i8) 0x7f; 
 global i16  max_i16 = (i16)0x7fff; 

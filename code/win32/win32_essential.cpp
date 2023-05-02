@@ -80,10 +80,10 @@ w32_date_time_from_system_time(SYSTEMTIME *in) {
   DateTime result = {};
   result.year = in->wYear;
   result.mon= (u8)in->wMonth;
-  result.day = in->wDay - 1;
-  result.hour = in->wHour;
-  result.min= in->wMinute;
-  result.sec= in->wSecond;
+  result.day = (u8)(in->wDay - 1);
+  result.hour = (u8)in->wHour;
+  result.min= (u8)in->wMinute;
+  result.sec= (u8)in->wSecond;
   result.msec = in->wMilliseconds;
   return result;
 }
@@ -91,7 +91,7 @@ w32_date_time_from_system_time(SYSTEMTIME *in) {
 function SYSTEMTIME
 w32_system_time_from_date_time(DateTime *in) {
   SYSTEMTIME result = {};
-  result.wYear = in->year;
+  result.wYear = (WORD)in->year;
   result.wMonth = in->mon;
   result.wDay = in->day + 1;
   result.wHour = in->hour;
@@ -480,6 +480,6 @@ function void
 os_get_entropy(void *data, u64 size) {
   HCRYPTPROV prov = 0;
   CryptAcquireContext(&prov, 0, 0, PROV_DSS, CRYPT_VERIFYCONTEXT);
-  CryptGenRandom(prov, size, (BYTE*)data);
+  CryptGenRandom(prov, (DWORD)size, (BYTE*)data);
   CryptReleaseContext(prov, 0);
 }

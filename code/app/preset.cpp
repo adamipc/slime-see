@@ -12,7 +12,7 @@ randomize_preset(M_Arena *arena, Preset *existing_preset) {
 
   u64 seed =0;
   os_get_entropy(&seed, sizeof(seed));
-  srand(seed);
+  srand((u32)seed);
 
   if (existing_preset) {
     result = *existing_preset;

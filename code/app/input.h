@@ -46,7 +46,39 @@ struct InputEventList {
   u64 node_count;
 };
 
-function InputEventList app_process_input(M_Arena *arena, MidiDeviceHandle *midi_handle);
+typedef u8 WindowEvents;
+enum {
+  WindowEvent_None = 0,
+  WindowEvent_CloseRequested,
+  WindowEvent_KeyboardInput,
+
+  WindowEvent_COUNT,
+};
+
+struct KeyboardData {
+  u32 VKCode;
+  b32 WasDown;
+  b32 IsDown;
+  b32 AltKeyWasDown;
+};
+
+struct WindowEventNode {
+  WindowEventNode *next;
+  WindowEvents event;
+  void *data;
+};
+
+struct WindowEventList {
+  WindowEventNode *first;
+  WindowEventNode *last;
+  u64 node_count;
+};
+
+function InputEventList app_process_input(M_Arena *arena, MidiDeviceHandle *midi_handle, WindowEventList *window_events);
+function void inputevent_list_push(M_Arena *arena, InputEventList *list, InputEvents event, void* data);
+
+function void windowevent_list_push(M_Arena *arena, WindowEventList *list, WindowEvents event, void* data);
+function WindowEventList win32_process_pending_messages(M_Arena *arena);
 
 #endif // APP_INPUT_H
 

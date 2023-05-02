@@ -15,6 +15,62 @@ struct shader_1_uniforms {
   float time;
 };
 
+struct screenshot_data {
+  String8 filename;
+  int width;
+  int height;
+  BYTE *pixels;
+  HANDLE thread;
+  M_Arena *conflict;
+};
+
+// ThreadProc for writing screenshot data to a file
+// NOTE(adam): This leaks the pixel buffer
+DWORD WINAPI
+slimesee_screenshot_thread(LPVOID lpParameter) {
+  OS_ThreadContext tctx_memory = {};
+  os_thread_init(&tctx_memory);
+  M_BaseMemory *memory = tctx_memory.memory;
+
+  M_Arena arena = m_make_arena_reserve(memory, MB(64));
+
+  screenshot_data *data = (screenshot_data *)lpParameter;
+
+  // TODO(adam): Use a different format that packs the data more
+  // efficiently and maybe takes less time to process?
+  String8List list = {};
+  str8_list_pushf(&arena, &list, "P3\n%d %d\n255\n", data->width, data->height);
+  for (int i = 0; i < data->width * data->height * 3; i += 3) {
+    str8_list_pushf(&arena, &list, "%3d %3d %3d\n", data->pixels[i], data->pixels[i + 1], data->pixels[i + 2]);
+  }
+  // Write the screenshot data to a file
+  os_file_write(data->filename, list);
+
+  os_memory_release(memory, 0);
+
+  return 0;
+}
+
+function void
+slimesee_screenshot(M_Arena *arena, SlimeSee *slimesee) {
+  // Save the current framebuffer to a file
+  String8 filename = str8_pushf(arena, "screenshot_%d.ppm", slimesee->screenshot_count++);
+  // Create a thread to write the file
+
+  // NOTE(adam): This leaks the pixel buffer in the arena
+  BYTE *pixels = push_array(arena, BYTE, slimesee->width * slimesee->height * 3);
+
+  glReadPixels(0, 0, slimesee->width, slimesee->height, GL_RGB, GL_UNSIGNED_BYTE, pixels);
+
+  screenshot_data *data = push_array(arena, screenshot_data, 1);
+  data->filename = filename;
+  data->pixels = pixels;
+  data->width = slimesee->width;
+  data->height = slimesee->height;
+  data->conflict = arena;
+  data->thread = CreateThread(NULL, 0, &slimesee_screenshot_thread, data, 0, NULL);
+}
+
 function void
 slimesee_reset_points(M_Arena *arena, SlimeSee *slimesee) {
     pipeline_generate_initial_positions(arena, &slimesee->pipeline, &slimesee->preset);

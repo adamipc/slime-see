@@ -4,7 +4,7 @@
 function u8
 str8_char_uppercase(u8 c) {
   if ('a' <= c && c <= 'z') {
-    c += 'A' - 'a';
+    c += (u8)('A' - 'a');
   }
 
   return c;
@@ -340,22 +340,22 @@ function u32
 str_encode_utf8(u8 *dst, u32 codepoint) {
  u32 size = 0;
  if (codepoint < (1 << 8)) {
-   dst[0] = codepoint;
+   dst[0] = (u8)codepoint;
    size = 1;
  }
  else if (codepoint < (1 << 11)) {
-   dst[0] = 0xC0 | (codepoint >> 6);
+   dst[0] = (u8)(0xC0 | (codepoint >> 6));
    dst[1] = 0x80 | (codepoint & 0x3F);
    size = 2;
  }
  else if (codepoint < (1 << 16)) {
-   dst[0] = 0xE0 | (codepoint >> 12);
+   dst[0] = (u8)(0xE0 | (codepoint >> 12));
    dst[1] = 0x80 | ((codepoint >> 6) & 0x3F);
    dst[2] = 0x80 | (codepoint & 0x3F);
    size = 3;
  }
  else if (codepoint < (1 << 21)) {
-   dst[0] = 0xF0 | (codepoint >> 18);
+   dst[0] = (u8)(0xF0 | (codepoint >> 18));
    dst[1] = 0x80 | ((codepoint >> 12) & 0x3F);
    dst[2] = 0x80 | ((codepoint >> 6) & 0x3F);
    dst[3] = 0x80 | (codepoint & 0x3F);
@@ -396,11 +396,11 @@ function u32
 str_encode_utf16(u16 *dst, u32 codepoint) {
   u32 size = 0;
   if (codepoint < 0x10000) {
-    dst[0] = codepoint;
+    dst[0] = (u16)codepoint;
     size = 1;
   }
   else {
-    dst[0] = 0xD800 + ((codepoint - 0x10000) >> 10);
+    dst[0] = (u16)(0xD800 + ((codepoint - 0x10000) >> 10));
     dst[1] = 0xDC00 + ((codepoint - 0x10000) & 0x3FF);
     size = 2;
   }
@@ -417,7 +417,7 @@ str16_from_str8(M_Arena *arena, String8 string) {
   u8 *ptr = string.str;
   u8 *opl = string.str + string.size;
   for (; ptr < opl;) {
-    StringDecode decode = str_decode_utf8(ptr, (u64)(opl - ptr));
+    StringDecode decode = str_decode_utf8(ptr, (u32)(opl - ptr));
     u32 enc_size = str_encode_utf16(dptr, decode.codepoint);
     ptr += decode.size;
     dptr += enc_size;
@@ -443,7 +443,7 @@ str8_from_str16(M_Arena *arena, String16 string) {
   u16 *ptr = string.str;
   u16 *opl = string.str + string.size;
   for (; ptr < opl;) {
-    StringDecode decode = str_decode_utf16(ptr, (u64)(opl - ptr));
+    StringDecode decode = str_decode_utf16(ptr, (u32)(opl - ptr));
     u32 enc_size = str_encode_utf8(dptr, decode.codepoint);
     ptr += decode.size;
     dptr += enc_size;
@@ -469,7 +469,7 @@ str32_from_str8(M_Arena *arena, String8 string) {
   u8 *ptr = string.str;
   u8 *opl = string.str + string.size;
   for (; ptr < opl;) {
-    StringDecode decode = str_decode_utf8(ptr, (u64)(opl - ptr));
+    StringDecode decode = str_decode_utf8(ptr, (u32)(opl - ptr));
     *dptr = decode.codepoint;
     ptr += decode.size;
     dptr += 1;

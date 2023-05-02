@@ -32,7 +32,7 @@ enum{
 };
 
 struct Preset {
-  u64                   number_of_points;
+  u32                   number_of_points;
   StartingArrangement   starting_arrangement;
   float                 average_starting_speed;
   float                 starting_speed_spread;

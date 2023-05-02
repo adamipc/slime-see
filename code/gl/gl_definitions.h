@@ -19,6 +19,7 @@
 
 #define GL_LINE                           0x1B01
 
+#define GL_RGB                            0x1907
 #define GL_RGBA                           0x1908
 
 #define GL_VERSION                        0x1F02

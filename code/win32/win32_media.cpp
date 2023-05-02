@@ -61,7 +61,7 @@ void CALLBACK MidiInProc(HMIDIIN hMidiIn, UINT wMsg,
 }
 
 function MidiDeviceHandle*
-os_media_midi_open(M_Arena *arena, u8 device_id, MidiMessage *buffer, u32 buffer_size) {
+os_media_midi_open(M_Arena *arena, UINT device_id, MidiMessage *buffer, u32 buffer_size) {
   MidiDeviceHandle *result = push_array(arena, MidiDeviceHandle, 1);
   MMRESULT rv = midiInOpen(&result->handle, device_id, (DWORD_PTR)MidiInProc, (DWORD_PTR)result, CALLBACK_FUNCTION);
   if (rv != MMSYSERR_NOERROR) {

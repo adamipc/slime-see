@@ -44,7 +44,7 @@ struct MidiMessage {
       u8 msb;
     };
   };
-  DWORD timestamp;
+  DWORD_PTR timestamp;
 };
 
 struct MidiDeviceHandle {
@@ -56,7 +56,7 @@ struct MidiDeviceHandle {
 };
 
 function String8List os_media_list_midi_devices(M_Arena *arena);
-function MidiDeviceHandle* os_media_midi_open(M_Arena *arena, u8 device_id, MidiMessage *buffer, u32 buffer_size);
+function MidiDeviceHandle* os_media_midi_open(M_Arena *arena, UINT device_id, MidiMessage *buffer, u32 buffer_size);
 function MidiMessage* os_media_midi_read(M_Arena *arena, MidiDeviceHandle *handle);
 
 #endif // OS_MEDIA_H

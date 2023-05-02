@@ -26,7 +26,7 @@
 #include "app/slimesee.cpp"
 #include "app/input.cpp"
 
-global bool running = false;
+global bool GlobalRunning = false;
 
 LRESULT CALLBACK window_proc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
   switch (message)
@@ -38,7 +38,7 @@ LRESULT CALLBACK window_proc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPar
       glViewport(0, 0, width, height);
     } break;
     case WM_DESTROY: {
-      running = false;
+      GlobalRunning = false;
       PostQuitMessage(0);
       return 0;
     } break;
@@ -90,8 +90,8 @@ WinMain(HINSTANCE Instance,
   String8List midi_devices = os_media_list_midi_devices(scratch);
 
   String8 device_name = str8_lit("MPD218");
-  DWORD MidiDeviceID = -1;
-  u8 index = 0;
+  i32 MidiDeviceID = -1;
+  i32 index = 0;
   for (String8Node *node = midi_devices.first;
        node != 0;
        node = node->next) {
@@ -105,7 +105,7 @@ WinMain(HINSTANCE Instance,
   MidiDeviceHandle *midi_handle = 0;
   if (MidiDeviceID >= 0) {
     MidiMessage *buffer = push_array(scratch, MidiMessage, 256);
-    midi_handle = os_media_midi_open(scratch, MidiDeviceID, buffer, 256);
+    midi_handle = os_media_midi_open(scratch, (UINT)MidiDeviceID, buffer, 256);
   }
 
   String8 error = {};
@@ -144,18 +144,15 @@ WinMain(HINSTANCE Instance,
 
   u64 last_time = os_now_microseconds();
   u64 frame = 0;
-  running = true;
+  GlobalRunning = true;
   for(;;) {
-    if (!running) {
+    if (!GlobalRunning) {
       break;
     }
-    MSG msg = {};
-    while(PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
-      TranslateMessage(&msg);
-      DispatchMessage(&msg);
-    }
 
-    InputEventList input_events = app_process_input(scratch, midi_handle);
+    WindowEventList window_events = win32_process_pending_messages(scratch);
+
+    InputEventList input_events = app_process_input(scratch, midi_handle, &window_events);
 
     for (InputEventNode *node = input_events.first;
          node != 0;
@@ -182,6 +179,12 @@ WinMain(HINSTANCE Instance,
         } break;
         case InputEvent_ClearTextures: {
           slimesee_clear_textures(slimesee);
+        } break;
+        case InputEvent_TakeScreenshot: {
+          slimesee_screenshot(scratch, slimesee);
+        } break;
+        case InputEvent_StopRunning: {
+          GlobalRunning = false;
         } break;
         default: {
           printf("Unhandled event: %02x\n", node->event);
@@ -225,8 +228,8 @@ WinMain(HINSTANCE Instance,
     frame++;
   }
 
-dbl_break:
-  ;
+  // TODO(adam): Tear down window / gl context better?
+  DestroyWindow(window.window);
 
   if (error.size != 0) {
     fprintf(stdout, "%.*s\n", str8_expand(error));

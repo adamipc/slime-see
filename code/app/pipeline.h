@@ -2,7 +2,7 @@
 #define PIPELINE_H
 
 struct Pipeline {
-  u64 number_of_positions;
+  u32 number_of_positions;
   GLuint framebuffer;
   GLuint target_textures[2];
   GLuint position_buffers[2];
