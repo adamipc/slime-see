@@ -27,15 +27,17 @@
 #include "app/input.cpp"
 
 global bool GlobalRunning = false;
+global i32 GlobalWindowWidth = 1280;
+global i32 GlobalWindowHeight = 720;
+global i32 GlobalViewportX = 0;
+global i32 GlobalViewportY = 0;
+global b32 GlobalResizeTriggered = false;
 
 LRESULT CALLBACK window_proc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
   switch (message)
   {
     case WM_SIZE: {
-      // Call glViewport here
-      int width = LOWORD(lParam);
-      int height = HIWORD(lParam);
-      glViewport(0, 0, width, height);
+      GlobalResizeTriggered = true;
     } break;
     case WM_DESTROY: {
       GlobalRunning = false;
@@ -112,12 +114,9 @@ WinMain(HINSTANCE Instance,
 
   error = win32_wgl_init(Instance);
 
-  int width = 1280;
-  int height = 720;
-
   W32_OpenGLWindow window = {};
   if (!error) {
-    window = win32_create_opengl_window(Instance, &window_proc, width, height);
+    window = win32_create_opengl_window(Instance, &window_proc, GlobalWindowWidth, GlobalWindowHeight);
   } else {
     print_str8(error);
   }
@@ -130,7 +129,7 @@ WinMain(HINSTANCE Instance,
 
   Preset preset = get_preset(PresetName_CollapsingBubble);
 
-  SlimeSee *slimesee = slimesee_init(scratch, &preset, width, height);
+  SlimeSee *slimesee = slimesee_init(scratch, &preset, GlobalWindowWidth, GlobalWindowHeight);
   // Common uniforms
   float u_time = 0.f;
 
@@ -145,6 +144,28 @@ WinMain(HINSTANCE Instance,
   u64 last_time = os_now_microseconds();
   u64 frame = 0;
   GlobalRunning = true;
+
+  int FullscreenWidth = GetSystemMetrics(SM_CXSCREEN);
+  int FullscreenHeight = GetSystemMetrics(SM_CYSCREEN);
+
+  u64 seed =0;
+  os_get_entropy(&seed, sizeof(seed));
+  srand((u32)seed);
+
+  int glitchViewportX = 0;
+  int glitchViewportY = 0;
+  int glitchWindowWidth = 0;
+  int glitchWindowHeight = 0;
+
+#if 0
+  glitchViewportX = (rand() % 10) - 5;
+  glitchViewportY = (rand() % 10) - 5;
+  glitchWindowWidth = (rand() % 10) - 5;
+  glitchWindowHeight = (rand() % 10) - 5;
+#endif
+
+  glViewport(GlobalViewportX+glitchViewportX, GlobalViewportY+glitchViewportY, GlobalWindowWidth+glitchWindowWidth, GlobalWindowHeight+glitchWindowHeight);
+  b32 IsFullscreen = false;
   for(;;) {
     if (!GlobalRunning) {
       break;
@@ -186,16 +207,60 @@ WinMain(HINSTANCE Instance,
         case InputEvent_StopRunning: {
           GlobalRunning = false;
         } break;
+        case InputEvent_ToggleFullscreen: {
+        if (IsFullscreen) {
+          GlobalWindowWidth = 1280;
+          GlobalWindowHeight = 720;
+          RECT window_rect = {50, 50, (LONG)GlobalWindowWidth+50, (LONG)GlobalWindowHeight+50};
+          SetWindowLongPtr(window.window, GWL_STYLE, WS_OVERLAPPEDWINDOW | WS_VISIBLE);
+          AdjustWindowRect(&window_rect, WS_OVERLAPPEDWINDOW, FALSE);
+          SetWindowPos(window.window, HWND_TOP, window_rect.left, window_rect.top, window_rect.right - window_rect.left,
+                       window_rect.bottom - window_rect.top, SWP_FRAMECHANGED | SWP_NOACTIVATE);
+          RECT client_rect = {};
+          GetClientRect(window.window, &client_rect);
+          GlobalWindowWidth = client_rect.right - client_rect.left;
+          GlobalWindowHeight = client_rect.bottom - client_rect.top;
+          slimesee_set_resolution(slimesee, GlobalWindowWidth+glitchWindowWidth, GlobalWindowHeight+glitchWindowHeight);
+        } else {
+          RECT window_rect = {0, 0, (LONG)FullscreenWidth, (LONG)FullscreenHeight};
+          SetWindowLongPtr(window.window, GWL_STYLE, WS_SYSMENU | WS_POPUP | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | WS_VISIBLE);
+          AdjustWindowRect(&window_rect, WS_POPUP, FALSE);
+          SetWindowPos(window.window, HWND_TOP, 0, 0, FullscreenWidth, FullscreenHeight, SWP_FRAMECHANGED);
+          RECT client_rect = {};
+          GetClientRect(window.window, &client_rect);
+          GlobalWindowWidth = (client_rect.right - client_rect.left);
+          GlobalWindowHeight = (client_rect.bottom - client_rect.top);
+      slimesee_set_resolution(slimesee, GlobalWindowWidth+glitchWindowWidth, GlobalWindowHeight+glitchWindowHeight);
+          String8 debug_info = str8_pushf(scratch, "Fullscreen: %dx%d\n\0", GlobalWindowWidth, GlobalWindowHeight);
+          printf("%.*s", str8_expand(debug_info));
+        }
+        IsFullscreen = !IsFullscreen;
+        } break;
         default: {
           printf("Unhandled event: %02x\n", node->event);
         } break;
       }
     };
 
+    if (GlobalResizeTriggered) {
+      GlobalResizeTriggered = false;
+      RECT client_rect = {};
+      GetClientRect(window.window, &client_rect);
+      GlobalWindowWidth = (client_rect.right - client_rect.left);
+      GlobalWindowHeight = (client_rect.bottom - client_rect.top);
+      slimesee_set_resolution(slimesee, GlobalWindowWidth+glitchWindowWidth, GlobalWindowHeight+glitchWindowHeight);
+    }
+
     HDC dc = GetDC(window.window);
     win32_wglMakeCurrent(dc, window.glrc);
 
-    glViewport(0, 0, width, height);
+    glViewport(GlobalViewportX+glitchViewportX, GlobalViewportY+glitchViewportY, GlobalWindowWidth+glitchWindowWidth, GlobalWindowHeight+glitchWindowHeight);
+#if 0
+    glitchViewportX = (rand() % 10) - 5;
+    glitchViewportY = (rand() % 10) - 5;
+    glitchWindowWidth = (rand() % 10) - 5;
+    glitchWindowHeight = (rand() % 10) - 5;
+#endif
 
     slimesee_draw(slimesee, u_time);
 

@@ -104,6 +104,34 @@ pipeline_generate_initial_positions(M_Arena *arena, Pipeline *pipeline, Preset *
   m_end_temp(restore_point);
 }
 
+function void
+pipeline_set_resolution(Pipeline *pipeline, int width, int height) {
+  pipeline_create_target_textures(pipeline, width, height);
+  pipeline_reset_target_textures(pipeline, width, height);
+}
+
+function void
+pipeline_reset_target_textures(Pipeline *pipeline, int width, int height) {
+  if (pipeline->target_textures[1] != 0) {
+    glDeleteTextures(2, pipeline->target_textures);
+  }
+  // Create a target texture and attach to our framebuffer
+  glGenTextures(2, pipeline->target_textures);
+  printf("target_textures[0,1]: [%d,%d]\n", pipeline->target_textures[0], pipeline->target_textures[1]);
+  glBindTexture(GL_TEXTURE_2D, pipeline->target_textures[0]);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE); // GL_REPEAT
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE); // GL_REPEAT
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);   // GL_LINEAR
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);   // GL_LINEAR
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+  glBindTexture(GL_TEXTURE_2D, pipeline->target_textures[1]);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE); // GL_REPEAT
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE); // GL_REPEAT
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);   // GL_LINEAR
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);   // GL_LINEAR
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+}
+
 function Pipeline*
 create_pipeline(M_Arena *arena, Preset *preset, int width, int height) {
   Pipeline *pipeline = push_array(arena, Pipeline, 1);
@@ -193,21 +221,7 @@ create_pipeline(M_Arena *arena, Preset *preset, int width, int height) {
     printf("error_code: %d\n", error_code);
   }
 
-  // Create a target texture and attach to our framebuffer
-  glGenTextures(2, pipeline->target_textures);
-  printf("target_textures[0,1]: [%d,%d]\n", pipeline->target_textures[0], pipeline->target_textures[1]);
-  glBindTexture(GL_TEXTURE_2D, pipeline->target_textures[0]);;
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE); // GL_REPEAT
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE); // GL_REPEAT
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);   // GL_LINEAR
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);   // GL_LINEAR
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
-  glBindTexture(GL_TEXTURE_2D, pipeline->target_textures[1]);;
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE); // GL_REPEAT
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE); // GL_REPEAT
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);   // GL_LINEAR
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);   // GL_LINEAR
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+  pipeline_reset_target_textures(pipeline, width, height);
 
   glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, pipeline->target_textures[0], 0);
 

@@ -145,6 +145,13 @@ struct shader_2_uniforms {
 };
 
 function void
+slimesee_set_resolution(SlimeSee *slimesee, int width, int height) {
+  slimesee->width = width;
+  slimesee->height = height;
+  pipeline_set_resolution(&slimesee->pipeline, width, height);
+}
+
+function void
 draw_shader_2(Pipeline *pipeline, shader_2_uniforms *uniforms) {
   // Draw shader2 to screen
   glUseProgram(pipeline->shader2);

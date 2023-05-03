@@ -26,5 +26,7 @@ struct Pipeline {
 
 function Pipeline* create_pipeline(M_Arena *arena, Preset *preset, int width, int height);
 function f32* generate_initial_positions(M_Arena *arena, Preset *preset);
+function void pipeline_reset_target_textures(Pipeline *pipeline, int width, int height);
+function void pipeline_set_resolution(Pipeline *pipeline, int width, int height);
 
 #endif // PIPELINE_H
