@@ -1,5 +1,197 @@
 #include "os/os_media.h"
 
+#include <mmdeviceapi.h>
+//#include <setupapi.h>
+//#include <initguid.h>
+//#include <devpkey.h>
+#include <functiondiscoverykeys.h>
+#include <audioclient.h>
+
+#define SAFE_RELEASE(punk)  \
+              if ((punk) != NULL)  \
+                { (punk)->Release(); (punk) = NULL; }
+
+function String8List
+os_media_list_audio_recording_devices(M_Arena *arena) {
+  String8List result = {};
+  if (SUCCEEDED(CoInitializeEx(NULL, COINIT_MULTITHREADED))) {
+    IMMDeviceEnumerator *device_enumerator = NULL;
+    if(SUCCEEDED(CoCreateInstance(__uuidof(MMDeviceEnumerator), NULL,
+            CLSCTX_INPROC_SERVER, __uuidof(IMMDeviceEnumerator),
+            (void **)&device_enumerator))) {
+      IMMDeviceCollection *audio_capture_endpoints = NULL;
+
+      if(SUCCEEDED(device_enumerator->EnumAudioEndpoints(eCapture, DEVICE_STATE_ACTIVE, &audio_capture_endpoints))) {
+        UINT count;
+        if (SUCCEEDED(audio_capture_endpoints->GetCount(&count))) {
+          for (ULONG i = 0; i < count; i++) {
+            IMMDevice *endpoint = NULL;
+            if (SUCCEEDED(audio_capture_endpoints->Item(i, &endpoint))) {
+              IPropertyStore *props = NULL;
+              if (SUCCEEDED(endpoint->OpenPropertyStore(STGM_READ, &props))) {
+                PROPVARIANT friendly_name;
+                PropVariantInit(&friendly_name);
+                if (SUCCEEDED(props->GetValue(PKEY_Device_FriendlyName, &friendly_name))) {
+                  String8 device_name = str8_from_str16(arena, str16_cstring((u16*)friendly_name.pwszVal));
+                  str8_list_push(arena, &result, device_name);
+
+                  PropVariantClear(&friendly_name);
+                  SAFE_RELEASE(props);
+                  SAFE_RELEASE(endpoint);
+                }
+              }
+            }
+          }
+          SAFE_RELEASE(audio_capture_endpoints);
+          SAFE_RELEASE(device_enumerator);
+        }
+      }
+    } 
+  }
+
+  return result;
+}
+
+#define REFTIMES_PER_SEC 10000000
+#define REFTIEMS_PER_MILLISEC 10000
+
+struct win32_audio_device {
+  IAudioClient *audio_client;
+  IAudioCaptureClient *capture_client;
+  IMMDevice *endpoint;
+  WAVEFORMATEX *wave_format;
+};
+
+function u8 *
+os_media_audio_read(M_Arena *arena, os_audio_device *audio_device, u32 *bytes_read) {
+  u8 *result = 0;
+
+  win32_audio_device *w_audio_device = (win32_audio_device *)audio_device->platform_data;
+  if (w_audio_device->capture_client) {
+    u32 packet_length;
+
+    IAudioCaptureClient *capture_client = w_audio_device->capture_client;
+    if (FAILED(capture_client->GetNextPacketSize(&packet_length))) {
+      // TODO(adam): Logging
+    }
+
+    if (packet_length != 0) {
+      u8 *buffer;
+      u32 frames_available;
+      DWORD flags;
+
+      if (FAILED(capture_client->GetBuffer(&buffer, &frames_available, &flags, 0, 0))) {
+        // TODO(adam): Logging
+      }
+
+      if (flags & AUDCLNT_BUFFERFLAGS_SILENT) {
+        buffer = 0;
+      }
+
+      u32 buffer_size = frames_available * w_audio_device->wave_format->nBlockAlign;
+      result = push_array(arena, u8, buffer_size);
+
+      if (buffer) {
+        MemoryCopy(result, buffer, buffer_size);
+      } else {
+        MemoryZero(result, buffer_size);
+      }
+
+      *bytes_read = buffer_size;
+
+      if (FAILED(capture_client->ReleaseBuffer(frames_available))) {
+        // TODO(adam): Logging
+      }
+    } else {
+      *bytes_read = 0;
+    }
+  }
+
+  return result;
+}
+
+function os_audio_device*
+os_media_audio_recording_open(M_Arena *arena, i32 device_id) {
+
+  os_audio_device *result = push_array(arena, os_audio_device, 1);
+  win32_audio_device *platform_data = push_array(arena, win32_audio_device, 1);
+
+  IMMDevice *device = NULL;
+  IMMDeviceEnumerator *device_enumerator = NULL;
+  if(SUCCEEDED(CoCreateInstance(__uuidof(MMDeviceEnumerator), NULL,
+          CLSCTX_INPROC_SERVER, __uuidof(IMMDeviceEnumerator),
+          (void **)&device_enumerator))) {
+    IMMDeviceCollection *audio_capture_endpoints = NULL;
+
+    if(SUCCEEDED(device_enumerator->EnumAudioEndpoints(eCapture, DEVICE_STATE_ACTIVE, &audio_capture_endpoints))) {
+      if (FAILED(audio_capture_endpoints->Item(device_id, &device))) {
+        // TODO(adam): Log error
+      }
+
+      SAFE_RELEASE(audio_capture_endpoints);
+      SAFE_RELEASE(device_enumerator);
+    }
+  }
+
+  IAudioClient *audio_client = NULL;
+  if (device != 0) {
+    if (FAILED(device->Activate(__uuidof(IAudioClient), CLSCTX_ALL,
+                                   NULL, (void**)&audio_client))) {
+      // TODO(adam): Log error
+    }
+  }
+
+  WAVEFORMATEX *wave_format = NULL;
+  if (audio_client != 0) {
+    if (FAILED(audio_client->GetMixFormat(&wave_format))) {
+      // TODO(adam): Log error
+    }
+  }
+
+  // Request buffer of 1 second
+  REFERENCE_TIME requested_duration = REFTIMES_PER_SEC;
+  if (wave_format != 0) {
+    if (SUCCEEDED(audio_client->Initialize(AUDCLNT_SHAREMODE_SHARED,
+                                        0,
+                                        requested_duration,
+                                        0,
+                                        wave_format,
+                                        0))) {
+    }
+
+    u32 buffer_frame_count;
+    if (FAILED(audio_client->GetBufferSize(&buffer_frame_count))) {
+      // TODO(adam): Log error
+    }
+
+    IAudioCaptureClient *capture_client = NULL;
+    if (buffer_frame_count != 0) {
+      if (FAILED(audio_client->GetService(__uuidof(IAudioCaptureClient), (void**)&capture_client))) {
+        // TODO(adam): Log error
+      }
+    }
+
+    if (capture_client != 0) {
+      REFERENCE_TIME actual_duration = (REFERENCE_TIME)((double)REFTIMES_PER_SEC * buffer_frame_count / wave_format->nSamplesPerSec);
+
+      if (FAILED(audio_client->Start())) {
+        // TODO(adam): Log error
+      }
+
+      platform_data->capture_client = capture_client;
+      platform_data->audio_client = audio_client;
+      platform_data->endpoint = device;
+      platform_data->wave_format = wave_format;
+      result->platform_data = (void*)platform_data;
+      result->channels = (u8)wave_format->nChannels;
+      result->samples_per_second = wave_format->nSamplesPerSec;
+      result->bytes_per_sample = (u8)wave_format->wBitsPerSample / 8;
+    }
+  }
+
+  return (os_audio_device*)result;
+}
+
 function String8List
 os_media_list_midi_devices(M_Arena *arena) {
   String8List result = {};

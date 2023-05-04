@@ -29,9 +29,12 @@
 global bool GlobalRunning = false;
 global i32 GlobalWindowWidth = 1280;
 global i32 GlobalWindowHeight = 720;
-global i32 GlobalViewportX = 0;
-global i32 GlobalViewportY = 0;
 global b32 GlobalResizeTriggered = false;
+global i32 glitchViewportX = 0;
+global i32 glitchViewportY = 0;
+global i32 glitchWindowWidth = 0;
+global i32 glitchWindowHeight = 0;
+
 
 LRESULT CALLBACK window_proc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
   switch (message)
@@ -67,6 +70,40 @@ gl_debug_message_callback(GLenum source,
          type, severity, message);
 }
 
+function b32
+ToggleFullscreen(HWND window, bool is_fullscreen) {
+  M_Scratch scratch;
+  if (is_fullscreen) {
+    GlobalWindowWidth = 1280;
+    GlobalWindowHeight = 720;
+    RECT window_rect = {50, 50, (LONG)GlobalWindowWidth+50, (LONG)GlobalWindowHeight+50};
+    SetWindowLongPtr(window, GWL_STYLE, WS_OVERLAPPEDWINDOW | WS_VISIBLE);
+    AdjustWindowRect(&window_rect, WS_OVERLAPPEDWINDOW, FALSE);
+    SetWindowPos(window, HWND_TOP, window_rect.left, window_rect.top, window_rect.right - window_rect.left,
+        window_rect.bottom - window_rect.top, SWP_FRAMECHANGED | SWP_NOACTIVATE);
+    RECT client_rect = {};
+    GetClientRect(window, &client_rect);
+    GlobalWindowWidth = client_rect.right - client_rect.left;
+    GlobalWindowHeight = client_rect.bottom - client_rect.top;
+  } else {
+    int FullscreenWidth = GetSystemMetrics(SM_CXSCREEN);
+    int FullscreenHeight = GetSystemMetrics(SM_CYSCREEN);
+
+    RECT window_rect = {0, 0, (LONG)FullscreenWidth, (LONG)FullscreenHeight};
+    SetWindowLongPtr(window, GWL_STYLE, WS_SYSMENU | WS_POPUP | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | WS_VISIBLE);
+    AdjustWindowRect(&window_rect, WS_POPUP, FALSE);
+    SetWindowPos(window, HWND_TOP, 0, 0, FullscreenWidth, FullscreenHeight, SWP_FRAMECHANGED);
+    RECT client_rect = {};
+    GetClientRect(window, &client_rect);
+    GlobalWindowWidth = (client_rect.right - client_rect.left);
+    GlobalWindowHeight = (client_rect.bottom - client_rect.top);
+  }
+
+  GlobalResizeTriggered = true;
+
+  return !is_fullscreen;
+}
+
 int CALLBACK
 WinMain(HINSTANCE Instance,
         HINSTANCE PrevInstance,
@@ -89,15 +126,43 @@ WinMain(HINSTANCE Instance,
 
   M_Scratch scratch;
 
+  String8 audio_device_name = str8_lit("VoiceMeeter Aux Output (VB-Audio VoiceMeeter AUX VAIO)");
+  String8List audio_devices = os_media_list_audio_recording_devices(scratch);
+  i32 AudioDeviceID = -1;
+  i32 index = 0;
+  for (String8Node *node = audio_devices.first;
+       node != 0;
+       node = node->next) {
+    if (str8_match(node->string, audio_device_name, 0)) {
+      printf("Found audio device: %.*s\n", str8_expand(node->string));
+      AudioDeviceID = index;
+      break;
+    }
+    index++;
+  }
+
+  u32 audio_buffer_size = 4096;
+  u32 audio_buffer_running_sample_index = 0;
+  f32 *audio_buffer = push_array(scratch, f32, audio_buffer_size);
+  os_audio_device *audio_device = os_media_audio_recording_open(scratch, AudioDeviceID);
+
+#if 1
+  win32_audio_device *w_audio_device = (win32_audio_device *)audio_device->platform_data;
+  WAVEFORMATEXTENSIBLE *wave_format = (WAVEFORMATEXTENSIBLE *)w_audio_device->wave_format;
+  Assert(wave_format->Format.wFormatTag == WAVE_FORMAT_EXTENSIBLE || wave_format->Format.wFormatTag == WAVE_FORMAT_PCM);
+  Assert(wave_format->Format.nChannels <= 2);
+  Assert(wave_format->SubFormat == KSDATAFORMAT_SUBTYPE_PCM || wave_format->SubFormat == KSDATAFORMAT_SUBTYPE_IEEE_FLOAT);
+#endif
+
   String8List midi_devices = os_media_list_midi_devices(scratch);
 
-  String8 device_name = str8_lit("MPD218");
+  String8 midi_device_name = str8_lit("MPD218");
   i32 MidiDeviceID = -1;
-  i32 index = 0;
+  index = 0;
   for (String8Node *node = midi_devices.first;
        node != 0;
        node = node->next) {
-    if (str8_match(node->string, device_name, 0)) {
+    if (str8_match(node->string, midi_device_name, 0)) {
       MidiDeviceID = index;
       break;
     }
@@ -145,17 +210,9 @@ WinMain(HINSTANCE Instance,
   u64 frame = 0;
   GlobalRunning = true;
 
-  int FullscreenWidth = GetSystemMetrics(SM_CXSCREEN);
-  int FullscreenHeight = GetSystemMetrics(SM_CYSCREEN);
-
   u64 seed =0;
   os_get_entropy(&seed, sizeof(seed));
   srand((u32)seed);
-
-  int glitchViewportX = 0;
-  int glitchViewportY = 0;
-  int glitchWindowWidth = 0;
-  int glitchWindowHeight = 0;
 
 #if 0
   glitchViewportX = (rand() % 10) - 5;
@@ -164,12 +221,42 @@ WinMain(HINSTANCE Instance,
   glitchWindowHeight = (rand() % 10) - 5;
 #endif
 
-  glViewport(GlobalViewportX+glitchViewportX, GlobalViewportY+glitchViewportY, GlobalWindowWidth+glitchWindowWidth, GlobalWindowHeight+glitchWindowHeight);
+  glViewport(glitchViewportX, glitchViewportY, GlobalWindowWidth+glitchWindowWidth, GlobalWindowHeight+glitchWindowHeight);
   b32 IsFullscreen = false;
+  b32 AutomatePresets = false;
+  f32 TransitionLength = 1.0;
   for(;;) {
     if (!GlobalRunning) {
       break;
     }
+
+    u32 bytes_read = 0;
+    M_Temp read_temp = m_begin_temp(scratch);
+    u8 *read_buffer = os_media_audio_read(scratch, audio_device, &bytes_read);
+    
+    u32 index_start = audio_buffer_running_sample_index;
+    while (bytes_read > 0) {
+      Assert(bytes_read % 4*audio_device->channels == 0);
+      // copy into audio_buffer
+      // If 2 channel, downmix to mono
+      f32 *samples = (f32*)read_buffer;
+      u32 samples_read = bytes_read / 4;
+      for (u32 i = 0; i < samples_read; i += audio_device->channels) {
+        f32 sample1 = samples[i];
+        if (audio_device->channels == 2) {
+          sample1 = (sample1 + samples[i+1]) * 0.5f;
+        }
+
+        audio_buffer[audio_buffer_running_sample_index++ % audio_buffer_size] = sample1;
+      }
+      m_end_temp(read_temp);
+
+      read_buffer = os_media_audio_read(scratch, audio_device, &bytes_read);
+    }
+    m_end_temp(read_temp);
+
+    u32 samples_read = audio_buffer_running_sample_index - index_start;
+    printf("samples_read: %d\n", samples_read);
 
     WindowEventList window_events = win32_process_pending_messages(scratch);
 
@@ -181,18 +268,38 @@ WinMain(HINSTANCE Instance,
       switch (node->event) {
         case InputEvent_LoadPreset: {
           PresetData *data = (PresetData *)node->data;
-          if (data->preset_slot == PresetSlot_Primary) {
-            slimesee->preset = get_preset(data->preset_name);
-          } else {
-            printf("Unhandled preset slot: %d\n", data->preset_slot);
+          Preset new_preset = get_preset(data->preset_name);
+          switch (data->preset_slot) {
+            case PresetSlot_Primary: {
+              slimesee_transition_preset(slimesee, new_preset, u_time, TransitionLength);
+            } break;
+            case PresetSlot_Secondary: {
+              slimesee->secondary_preset = new_preset;
+            } break;
+            case PresetSlot_Beat: {
+              slimesee->beat_preset = new_preset;
+            } break;
+            default: {
+              printf("Unhandled preset slot: %d\n", data->preset_slot);
+            } break;
           }
         } break;
         case InputEvent_RandomizePreset: {
           PresetData *data = (PresetData *)node->data;
-          if (data->preset_slot == PresetSlot_Primary) {
-            slimesee->preset = randomize_preset(scratch, &preset);
-          } else {
-            printf("Unhandled preset slot: %d\n", data->preset_slot);
+          Preset new_preset = randomize_preset();
+          switch (data->preset_slot) {
+            case PresetSlot_Primary: {
+              slimesee_transition_preset(slimesee, new_preset, u_time, TransitionLength);
+            } break;
+            case PresetSlot_Secondary: {
+              slimesee->secondary_preset = new_preset;
+            } break;
+            case PresetSlot_Beat: {
+              slimesee->beat_preset = new_preset;
+            } break;
+            default: {
+              printf("Unhandled preset slot: %d\n", data->preset_slot);
+            } break;
           }
         } break;
         case InputEvent_ResetPoints: {
@@ -207,34 +314,19 @@ WinMain(HINSTANCE Instance,
         case InputEvent_StopRunning: {
           GlobalRunning = false;
         } break;
+        case InputEvent_UpdateBlendValue: {
+          BlendValueData *data = (BlendValueData *)node->data;
+          slimesee->blend_value = data->blend_value;
+        } break;
+        case InputEvent_UpdateBeatTransitionTime: {
+          BeatTransitionTimeData *data = (BeatTransitionTimeData *)node->data;
+          slimesee->beat_transition_time = data->beat_transition_time;
+        } break;
+        case InputEvent_ToggleAutomation: {
+          AutomatePresets = !AutomatePresets;
+        } break;
         case InputEvent_ToggleFullscreen: {
-        if (IsFullscreen) {
-          GlobalWindowWidth = 1280;
-          GlobalWindowHeight = 720;
-          RECT window_rect = {50, 50, (LONG)GlobalWindowWidth+50, (LONG)GlobalWindowHeight+50};
-          SetWindowLongPtr(window.window, GWL_STYLE, WS_OVERLAPPEDWINDOW | WS_VISIBLE);
-          AdjustWindowRect(&window_rect, WS_OVERLAPPEDWINDOW, FALSE);
-          SetWindowPos(window.window, HWND_TOP, window_rect.left, window_rect.top, window_rect.right - window_rect.left,
-                       window_rect.bottom - window_rect.top, SWP_FRAMECHANGED | SWP_NOACTIVATE);
-          RECT client_rect = {};
-          GetClientRect(window.window, &client_rect);
-          GlobalWindowWidth = client_rect.right - client_rect.left;
-          GlobalWindowHeight = client_rect.bottom - client_rect.top;
-          slimesee_set_resolution(slimesee, GlobalWindowWidth+glitchWindowWidth, GlobalWindowHeight+glitchWindowHeight);
-        } else {
-          RECT window_rect = {0, 0, (LONG)FullscreenWidth, (LONG)FullscreenHeight};
-          SetWindowLongPtr(window.window, GWL_STYLE, WS_SYSMENU | WS_POPUP | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | WS_VISIBLE);
-          AdjustWindowRect(&window_rect, WS_POPUP, FALSE);
-          SetWindowPos(window.window, HWND_TOP, 0, 0, FullscreenWidth, FullscreenHeight, SWP_FRAMECHANGED);
-          RECT client_rect = {};
-          GetClientRect(window.window, &client_rect);
-          GlobalWindowWidth = (client_rect.right - client_rect.left);
-          GlobalWindowHeight = (client_rect.bottom - client_rect.top);
-      slimesee_set_resolution(slimesee, GlobalWindowWidth+glitchWindowWidth, GlobalWindowHeight+glitchWindowHeight);
-          String8 debug_info = str8_pushf(scratch, "Fullscreen: %dx%d\n\0", GlobalWindowWidth, GlobalWindowHeight);
-          printf("%.*s", str8_expand(debug_info));
-        }
-        IsFullscreen = !IsFullscreen;
+        IsFullscreen = ToggleFullscreen(window.window, IsFullscreen);
         } break;
         default: {
           printf("Unhandled event: %02x\n", node->event);
@@ -254,7 +346,7 @@ WinMain(HINSTANCE Instance,
     HDC dc = GetDC(window.window);
     win32_wglMakeCurrent(dc, window.glrc);
 
-    glViewport(GlobalViewportX+glitchViewportX, GlobalViewportY+glitchViewportY, GlobalWindowWidth+glitchWindowWidth, GlobalWindowHeight+glitchWindowHeight);
+    glViewport(glitchViewportX, glitchViewportY, GlobalWindowWidth+glitchWindowWidth, GlobalWindowHeight+glitchWindowHeight);
 #if 0
     glitchViewportX = (rand() % 10) - 5;
     glitchViewportY = (rand() % 10) - 5;
@@ -273,7 +365,7 @@ WinMain(HINSTANCE Instance,
       //printf("no error\n");
     }
 
-    u_time += 0.01f;
+    u_time += 0.002f;
 
     SwapBuffers(dc);
     ReleaseDC(window.window, dc);

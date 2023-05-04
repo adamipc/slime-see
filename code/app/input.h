@@ -34,6 +34,14 @@ struct PresetData {
   PresetNames preset_name;
 };
 
+struct BlendValueData {
+  f32 blend_value;
+};
+
+struct BeatTransitionTimeData {
+  f32 beat_transition_time;
+};
+
 struct InputEventNode {
   InputEventNode *next;
   InputEvents event;

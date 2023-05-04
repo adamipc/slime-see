@@ -235,14 +235,44 @@ function f64 ln_f64(f64 x) {
 }
 
 function f32
-lerp(f32 a, f32 t, f32 b) {
+lerp_f32(f32 a, f32 t, f32 b) {
   f32 x = a + (b - a) * t;
   return x;
 }
 
 function f32
-unlerp(f32 a, f32 x, f32 b) {
+unlerp_f32(f32 a, f32 x, f32 b) {
   f32 t = 0.f;
+  if (a != b) {
+    t = (x - a) / (b - a);
+  }
+  return t;
+}
+
+function i32
+lerp_i32(i32 a, f64 t, i32 b) {
+  i32 x = (i32)(a + (b - a) * t);
+  return x;
+}
+
+function f64
+unlerp_i32(i32 a, i32 x, i32 b) {
+  f64 t = 0.f;
+  if (a != b) {
+    t = (f64)(x - a) / (f64)(b - a);
+  }
+  return t;
+}
+
+function f64
+lerp(f64 a, f64 t, f64 b) {
+  f64 x = a + (b - a) * t;
+  return x;
+}
+
+function f64
+unlerp(f64 a, f64 x, f64 b) {
+  f64 t = 0.;
   if (a != b) {
     t = (x - a) / (b - a);
   }

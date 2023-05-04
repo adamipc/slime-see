@@ -6,31 +6,50 @@ random_range(u32 min, u32 max) {
   return result;
 }
 
+function Preset lerp_preset(Preset a, Preset b, f32 t) {
+  Preset result = {};
+
+  result.number_of_points = lerp_i32(a.number_of_points, t, b.number_of_points);
+  result.starting_arrangement = (StartingArrangement)lerp_i32(a.starting_arrangement, t, b.starting_arrangement);
+  result.average_starting_speed = lerp_f32(a.average_starting_speed, t, b.average_starting_speed);
+  result.starting_speed_spread = lerp_f32(a.starting_speed_spread, t, b.starting_speed_spread);
+  
+  result.speed_multiplier = lerp_f32(a.speed_multiplier, t, b.speed_multiplier);
+  result.point_size = lerp_f32(a.point_size, t, b.point_size);
+  result.random_steer_factor = lerp_f32(a.random_steer_factor, t, b.random_steer_factor);
+  result.constant_steer_factor = lerp_f32(a.constant_steer_factor, t, b.constant_steer_factor);
+  result.trail_strength = lerp_f32(a.trail_strength, t, b.trail_strength);
+  result.search_radius = lerp_f32(a.search_radius, t, b.search_radius);
+  result.wall_strategy = (WallStrategy)lerp_f32(a.wall_strategy, t, b.wall_strategy);
+  result.color_strategy = (ColorStrategy)lerp_f32(a.color_strategy, t, b.color_strategy);
+
+  result.fade_speed = lerp_f32(a.fade_speed, t, b.fade_speed);
+  result.blurring = lerp_f32(a.blurring, t, b.blurring);
+
+  return result;
+}
+
 function Preset
-randomize_preset(M_Arena *arena, Preset *existing_preset) {
+randomize_preset() {
   Preset result = {};
 
   u64 seed =0;
   os_get_entropy(&seed, sizeof(seed));
   srand((u32)seed);
 
-  if (existing_preset) {
-    result = *existing_preset;
-  }
-
   result.number_of_points = power_of_two(random_range(12, 21)); // 2048 - 2097152
   result.starting_arrangement = (StartingArrangement)random_range(0, StartingArrangement_COUNT);
   result.average_starting_speed = random_range(0, 100) / 100.0f; // 0.0 - 1.0
   result.starting_speed_spread = random_range(0, 100) / 100.0f;  // 0.0 - 1.0
 
-  // TODO(adam): Do we want ro randomize this? Currently all presets use the same value
+  // TODO(adam): Do we want to randomize this? Currently all presets use the same value
   result.speed_multiplier = 1.0f;
   result.point_size = (random_range(0, 10) / 2.5f) + 1.0f;       // 1.0 - 5.0
   result.random_steer_factor = random_range(5, 100) / 1000.0f;   // 0.005 - 0.1
   result.constant_steer_factor = random_range(0, 500) / 1000.0f; // 0.0 - 0.5
   result.trail_strength = random_range(0, 200) / 1000.0f;        // 0.0 - 0.2
   result.search_radius = random_range(10, 100) / 1000.0f;        // 0.01 - 0.1
-  result.wall_strategy = (WallStrategy)random_range(0, WallStrategy_COUNT);
+  result.wall_strategy = (WallStrategy)random_range(1, WallStrategy_COUNT);
   result.color_strategy = (ColorStrategy)random_range(0, ColorStrategy_COUNT);
 
   result.fade_speed = random_range(0, 100) / 1000.0f; // 0.0 - 0.1

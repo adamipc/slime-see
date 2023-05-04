@@ -538,6 +538,9 @@ function f64 ln_f64(f64 x);
 function f32 lerp_f32(f32 a, f32 t, f32 b);
 function f32 unlerp_f32(f32 a, f32 x, f32 b);
 
+function i32 lerp_i32(i32 a, f64 t, i32 b);
+function f64 unlerp_i32(i32 a, i32 x, i32 b);
+
 function f64 lerp(f64 a, f64 t, f64 b);
 function f64 unlerp(f64 a, f64 x, f64 b);
 

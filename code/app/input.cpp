@@ -110,23 +110,45 @@ app_process_input(M_Arena *arena, MidiDeviceHandle *midi_handle, WindowEventList
   if (midi_handle != 0) {
     MidiMessage *message = 0;
     while ((message = os_media_midi_read(arena, midi_handle)) != 0) {
+      InputEvents event = InputEvent_None;
+      void *data = 0;
       switch (message->status) {
+        case MidiStatus_ControlChange: {
+          switch (message->controller) {
+            case 3: {
+              event = InputEvent_UpdateBlendValue;
+              data = push_array(arena, BlendValueData, 1);
+              ((BlendValueData *)data)->blend_value = message->value/127.0f;
+            } break;
+            case 9: {
+              event = InputEvent_UpdateBeatTransitionTime;
+              data = push_array(arena, BeatTransitionTimeData, 1);
+              ((BeatTransitionTimeData *)data)->beat_transition_time = message->value/127.0f;
+            } break;
+            default: {
+              printf("Controller %d: %d\n", message->controller, message->value);
+            } break;
+          }
+
+          if (event != InputEvent_None) {
+            inputevent_list_push(arena, &result, event, data);
+          }
+        } break;
         case MidiStatus_NoteOn: {
-          InputEvents event = InputEvent_None;
-          PresetData data = {};
+          data = push_array(arena, PresetData, 1);
           u8 pad = message->note - 36;
           if (pad <= 9) {
             event = InputEvent_LoadPreset;
-            data.preset_slot = PresetSlot_Primary;
-            data.preset_name = (PresetNames)(pad + 1);
+            ((PresetData *)data)->preset_slot = PresetSlot_Primary;
+            ((PresetData *)data)->preset_name = (PresetNames)(pad + 1);
           } else if (pad >= 16 && pad <=25) {
             event = InputEvent_LoadPreset;
-            data.preset_slot = PresetSlot_Secondary;
-            data.preset_name = (PresetNames)(pad - 15);
+            ((PresetData *)data)->preset_slot = PresetSlot_Secondary;
+            ((PresetData *)data)->preset_name = (PresetNames)(pad - 15);
           } else if (pad >= 32 && pad <= 41) {
             event = InputEvent_LoadPreset;
-            data.preset_slot = PresetSlot_Beat;
-            data.preset_name = (PresetNames)(pad - 31);
+            ((PresetData *)data)->preset_slot = PresetSlot_Beat;
+            ((PresetData *)data)->preset_name = (PresetNames)(pad - 31);
           } else {
             switch (pad) {
               case 10: {
@@ -137,15 +159,15 @@ app_process_input(M_Arena *arena, MidiDeviceHandle *midi_handle, WindowEventList
               } break;
               case 12: {
                 event = InputEvent_RandomizePreset;
-                data.preset_slot = PresetSlot_Primary;
+                ((PresetData *)data)->preset_slot = PresetSlot_Primary;
               } break;
               case 13: {
                 event = InputEvent_RandomizePreset;
-                data.preset_slot = PresetSlot_Secondary;
+                ((PresetData *)data)->preset_slot = PresetSlot_Secondary;
               } break;
               case 14: {
                 event = InputEvent_RandomizePreset;
-                data.preset_slot = PresetSlot_Beat;
+                ((PresetData *)data)->preset_slot = PresetSlot_Beat;
               } break;
               case 15: {
                 event = InputEvent_ToggleAutomation;
@@ -157,7 +179,7 @@ app_process_input(M_Arena *arena, MidiDeviceHandle *midi_handle, WindowEventList
           }
 
           if (event != InputEvent_None) {
-            inputevent_list_push(arena, &result, event, &data);
+            inputevent_list_push(arena, &result, event, data);
           }
         } break;
         case MidiStatus_ChannelPressure: {

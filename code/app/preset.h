@@ -68,6 +68,7 @@ enum{
   PresetName_COUNT,
 };
 
-function Preset randomize_preset(M_Arena *arena, Preset *existing_preset);
+function Preset randomize_preset();
+function Preset lerp_preset(Preset a, Preset b, f32 t);
 
 #endif // PRESET_H

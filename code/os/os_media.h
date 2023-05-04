@@ -55,8 +55,19 @@ struct MidiDeviceHandle {
   u32 buffer_size;
 };
 
+struct os_audio_device {
+  u8 channels;
+  u8 bytes_per_sample;
+  u32 samples_per_second;
+  void *platform_data;
+};
+
 function String8List os_media_list_midi_devices(M_Arena *arena);
 function MidiDeviceHandle* os_media_midi_open(M_Arena *arena, UINT device_id, MidiMessage *buffer, u32 buffer_size);
 function MidiMessage* os_media_midi_read(M_Arena *arena, MidiDeviceHandle *handle);
+
+function String8List      os_media_list_audio_recording_devices(M_Arena *arena);
+function os_audio_device* os_media_audio_recording_open(M_Arena *arena, i32 device_id);
+function u8 *             os_media_audio_read(M_Arena *arena, os_audio_device *audio_device, u32 *bytes_read);
 
 #endif // OS_MEDIA_H

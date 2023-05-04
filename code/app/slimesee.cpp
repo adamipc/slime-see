@@ -24,6 +24,14 @@ struct screenshot_data {
   M_Arena *conflict;
 };
 
+function void
+slimesee_transition_preset(SlimeSee *slimesee, Preset new_preset, f32 transition_start, f32 transition_length) {
+  slimesee->old_preset = slimesee->primary_preset;
+  slimesee->primary_preset = new_preset;
+  slimesee->transition_start = transition_start;
+  slimesee->transition_length = transition_length;
+}
+
 // ThreadProc for writing screenshot data to a file
 // NOTE(adam): This leaks the pixel buffer
 DWORD WINAPI
@@ -73,7 +81,8 @@ slimesee_screenshot(M_Arena *arena, SlimeSee *slimesee) {
 
 function void
 slimesee_reset_points(M_Arena *arena, SlimeSee *slimesee) {
-    pipeline_generate_initial_positions(arena, &slimesee->pipeline, &slimesee->preset);
+  // TODO(adam): make this use the transition preset?
+  pipeline_generate_initial_positions(arena, &slimesee->pipeline, &slimesee->primary_preset);
 }
 
 function void
@@ -197,25 +206,42 @@ slimesee_init(M_Arena *arena, Preset *preset, int width, int height) {
   SlimeSee *slimesee = push_array(arena, SlimeSee, 1);
   slimesee->width = width;
   slimesee->height = height;
-  slimesee->preset = *preset;
+  slimesee->primary_preset = *preset;
+  slimesee->secondary_preset = *preset;
+  slimesee->beat_preset = *preset;
+  slimesee->old_preset = *preset;
+  slimesee->transition_start = 0.0f;
+  slimesee->transition_length = 0.0f;
   slimesee->pipeline = *create_pipeline(arena, preset, width, height);
   return slimesee;
 }
 
 function void
 slimesee_draw(SlimeSee *slimesee, float u_time) {
+  f32 transition_now = abs_f32(u_time - slimesee->transition_start);
+  b32 transition_in_progress = transition_now < slimesee->transition_length;
+
+  Preset draw_preset;
+  if (transition_in_progress) {
+    f32 transition_progress = transition_now / slimesee->transition_length;
+    draw_preset = lerp_preset(slimesee->old_preset, slimesee->primary_preset, transition_progress);
+  } else {
+    // Blend between primary and secondary preset
+    draw_preset = lerp_preset(slimesee->primary_preset, slimesee->secondary_preset, slimesee->blend_value);
+  }
+
   shader_1_uniforms uniforms_1 = {};
   uniforms_1.time = u_time;
   uniforms_1.texture0 = 0;
   uniforms_1.texture1 = 1;
-  uniforms_1.speed_multiplier = slimesee->preset.speed_multiplier;
-  uniforms_1.vertex_radius = slimesee->preset.point_size;
-  uniforms_1.random_steer_factor = slimesee->preset.random_steer_factor;
-  uniforms_1.constant_steer_factor = slimesee->preset.constant_steer_factor;
-  uniforms_1.trail_strength = slimesee->preset.trail_strength;
-  uniforms_1.search_radius = slimesee->preset.search_radius;
-  uniforms_1.wall_strategy = slimesee->preset.wall_strategy;
-  uniforms_1.color_strategy = slimesee->preset.color_strategy;
+  uniforms_1.speed_multiplier = draw_preset.speed_multiplier;
+  uniforms_1.vertex_radius = draw_preset.point_size;
+  uniforms_1.random_steer_factor = draw_preset.random_steer_factor;
+  uniforms_1.constant_steer_factor = draw_preset.constant_steer_factor;
+  uniforms_1.trail_strength = draw_preset.trail_strength;
+  uniforms_1.search_radius = draw_preset.search_radius;
+  uniforms_1.wall_strategy = draw_preset.wall_strategy;
+  uniforms_1.color_strategy = draw_preset.color_strategy;
   uniforms_1.search_angle = 0.2f;
 
   draw_shader_1(&slimesee->pipeline, &uniforms_1);
@@ -224,8 +250,8 @@ slimesee_draw(SlimeSee *slimesee, float u_time) {
   uniforms_2.texture0 = 0;
   uniforms_2.texture1 = 1;
   uniforms_2.time = u_time;
-  uniforms_2.fade_speed = slimesee->preset.fade_speed;
-  uniforms_2.blur_fraction = slimesee->preset.blurring;
+  uniforms_2.fade_speed = draw_preset.fade_speed;
+  uniforms_2.blur_fraction = draw_preset.blurring;
   draw_shader_2(&slimesee->pipeline, &uniforms_2);
 }
 
