@@ -16,8 +16,12 @@ enum {
   InputEvent_StopRunning,
   InputEvent_DumpState,
   InputEvent_ClearTextures,
-  InputEvent_ResetPoints,
+  InputEvent_PanicAtTheDisco,
   InputEvent_TakeScreenshot,
+  InputEvent_UpdateWindowGlitch,
+  InputEvent_UpdateBeatSensitivity,
+  InputEvent_UpdateBeatTransitionRatio,
+  InputEvent_UpdateColorSwap,
 
   InputEvent_COUNT,
 };
@@ -32,6 +36,15 @@ enum {
 struct PresetData {
   PresetSlot preset_slot;
   PresetNames preset_name;
+  f32 preset_intensity;
+};
+
+struct BeatTransitionRatioData {
+  f32 beat_transition_ratio;
+};
+
+struct BeatSensitivityData {
+  f32 beat_sensitivity;
 };
 
 struct BlendValueData {
@@ -39,7 +52,11 @@ struct BlendValueData {
 };
 
 struct BeatTransitionTimeData {
-  f32 beat_transition_time;
+  f32 beat_transition_ms;
+};
+
+struct ColorSwapData {
+  f32 color_swap;
 };
 
 struct InputEventNode {
@@ -52,6 +69,19 @@ struct InputEventList {
   InputEventNode *first;
   InputEventNode *last;
   u64 node_count;
+};
+
+typedef u8 GlitchWindowParam;
+enum {
+  GlitchWindowParam_X = 0,
+  GlitchWindowParam_Y = 1,
+  GlitchWindowParam_Width = 2,
+  GlitchWindowParam_Height = 3,
+};
+
+struct GlitchWindowData {
+  u32 glitch_value;
+  GlitchWindowParam window_param;
 };
 
 typedef u8 WindowEvents;

@@ -36,6 +36,10 @@ void main() {
   // Modify how much blurring by mixing the blurred version with the original
   blurred = prev_frame*(1.0-u_blur_fraction) + blurred*u_blur_fraction;
 
+  if (shader1_out.r < 0.15 && shader1_out.g < 0.15 && shader1_out.b < 0.15) {
+    shader1_out.a = 0.05;
+  }
+
   // The output colour - adding the shader 1 output to the blurred version of the previous frame
   gl_FragColor = shader1_out + blurred*(1.0-u_fade_speed) - 0.0001;
 }

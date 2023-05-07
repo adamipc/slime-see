@@ -5,11 +5,39 @@
 #define GL_FALSE                          0
 #define GL_NO_ERROR                       0
 
+#define GL_ZERO                           0x0000
+#define GL_ONE                            0x0001
+
 #define GL_POINTS                         0x0000
 #define GL_TRIANGLES                      0x0004
 #define GL_TRIANGLE_FAN                   0x0006
 
+#define GL_GREATER                        0x0204
+
+#define GL_SRC_COLOR                      0x0300
+#define GL_ONE_MINUS_SRC_COLOR            0x0301
+#define GL_SRC_ALPHA                      0x0302
+#define GL_ONE_MINUS_SRC_ALPHA            0x0303
+#define GL_DST_ALPHA                      0x0304
+#define GL_ONE_MINUS_DST_ALPHA            0x0305
+#define GL_DST_COLOR                      0x0306
+#define GL_ONE_MINUS_DST_COLOR            0x0307
+#define GL_SRC_ALPHA_SATURATE             0x0308
+
+#define GL_CONSTANT_COLOR                 0x8001
+#define GL_ONE_MINUS_CONSTANT_COLOR       0x8002
+#define GL_CONSTANT_ALPHA                 0x8003
+#define GL_ONE_MINUS_CONSTANT_ALPHA       0x8004
+
+#define GL_SRC1_COLOR                     0x88F9
+#define GL_ONE_MINUS_SRC1_COLOR           0x88FA
+#define GL_SRC1_ALPHA                     0x8589
+#define GL_ONE_MINUS_SRC1_ALPHA           0x88FB
+
 #define GL_FRONT_AND_BACK                 0x0408
+
+#define GL_ALPHA_TEST                     0x0BC0
+#define GL_BLEND                          0x0BE2
 
 #define GL_TEXTURE_2D                     0x0DE1
 
@@ -19,12 +47,18 @@
 
 #define GL_LINE                           0x1B01
 
+#define GL_RED                            0x1903
+#define GL_GREEN                          0x1904
+#define GL_BLUE                           0x1905
+#define GL_ALPHA                          0x1906
 #define GL_RGB                            0x1907
 #define GL_RGBA                           0x1908
+#define GL_LUMINANCE                      0x1909
 
 #define GL_VERSION                        0x1F02
 
 #define GL_NEAREST                        0x2600
+#define GL_LINEAR                         0x2601
 
 #define GL_TEXTURE_MAG_FILTER             0x2800
 #define GL_TEXTURE_MIN_FILTER             0x2801

@@ -82,13 +82,9 @@ pipeline_create_target_textures(Pipeline *pipeline, int width, int height) {
 }
 
 function void
-pipeline_generate_initial_positions(M_Arena *arena, Pipeline *pipeline, Preset *preset) {
-  u64 seed =0;
-  os_get_entropy(&seed, sizeof(seed));
-  srand((u32)seed);
-
-  M_Temp restore_point = m_begin_temp(arena);
-  f32 *initial_positions = generate_initial_positions(arena, preset);
+pipeline_generate_initial_positions(Pipeline *pipeline, Preset *preset) {
+  M_Scratch scratch;
+  f32 *initial_positions = generate_initial_positions(scratch, preset);
   if (pipeline->position_buffers[1] != 0) {
     glDeleteBuffers(2, pipeline->position_buffers);
   }
@@ -100,8 +96,6 @@ pipeline_generate_initial_positions(M_Arena *arena, Pipeline *pipeline, Preset *
   glBufferData(GL_ARRAY_BUFFER, pipeline->number_of_positions*4*4, initial_positions, GL_DYNAMIC_COPY);
   glBindBuffer(GL_ARRAY_BUFFER, pipeline->position_buffers[1]);
   glBufferData(GL_ARRAY_BUFFER, pipeline->number_of_positions*4*4, initial_positions, GL_DYNAMIC_COPY);
-
-  m_end_temp(restore_point);
 }
 
 function void
@@ -160,7 +154,7 @@ create_pipeline(M_Arena *arena, Preset *preset, int width, int height) {
     pipeline->a_position_location = glGetAttribLocation(pipeline->shader1, "a_position");
     glEnableVertexAttribArray(pipeline->a_position_location);
 
-    pipeline_generate_initial_positions(arena, pipeline, preset);
+    pipeline_generate_initial_positions(pipeline, preset);
 
     // Transform feedback
     glGenTransformFeedbacks(1, &transform_feedback);

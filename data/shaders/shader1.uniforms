@@ -10,3 +10,7 @@ X(u_trail_strength)
 X(u_vertex_radius)
 X(u_search_angle)
 X(u_time)
+X(u_color_strategy_old)
+X(u_transition_time)
+X(u_color_swap)
+

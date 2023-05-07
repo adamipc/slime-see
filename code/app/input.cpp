@@ -82,7 +82,7 @@ app_process_input(M_Arena *arena, MidiDeviceHandle *midi_handle, WindowEventList
             preset_data->preset_slot = PresetSlot_Primary;
             inputevent_list_push(arena, &result, InputEvent_RandomizePreset, preset_data);
           } else if (data->VKCode == 'P') {
-            inputevent_list_push(arena, &result, InputEvent_ResetPoints, 0);
+            inputevent_list_push(arena, &result, InputEvent_PanicAtTheDisco, 0);
           } else if (data->VKCode == 'C') {
             inputevent_list_push(arena, &result, InputEvent_ClearTextures, 0);
           } else if (data->VKCode == 'S') {
@@ -120,10 +120,36 @@ app_process_input(M_Arena *arena, MidiDeviceHandle *midi_handle, WindowEventList
               data = push_array(arena, BlendValueData, 1);
               ((BlendValueData *)data)->blend_value = message->value/127.0f;
             } break;
-            case 9: {
+            case 9:
+            case 17:
+            case 23: {
               event = InputEvent_UpdateBeatTransitionTime;
               data = push_array(arena, BeatTransitionTimeData, 1);
-              ((BeatTransitionTimeData *)data)->beat_transition_time = message->value/127.0f;
+              ((BeatTransitionTimeData *)data)->beat_transition_ms = 125.0f * message->value/127.0f;
+            } break;
+            case 12:
+            case 13:
+            case 14:
+            case 15: {
+              event = InputEvent_UpdateWindowGlitch;
+              data = push_array(arena, GlitchWindowData, 1);
+              ((GlitchWindowData *)data)->window_param = (GlitchWindowParam)(message->controller - 12);
+              ((GlitchWindowData *)data)->glitch_value = (u32)(message->value/127.0f * 20 - 10);
+            } break;
+            case 16: {
+              event = InputEvent_UpdateColorSwap;
+              data = push_array(arena, ColorSwapData, 1);
+              ((ColorSwapData *)data)->color_swap = message->value/127.0f;
+            } break;
+            case 22: {
+              event = InputEvent_UpdateBeatSensitivity;
+              data = push_array(arena, BeatSensitivityData, 1);
+              ((BeatSensitivityData *)data)->beat_sensitivity = message->value/127.0f;
+            } break;
+            case 24: {
+              event = InputEvent_UpdateBeatTransitionRatio;
+              data = push_array(arena, BeatTransitionRatioData, 1);
+              ((BeatTransitionRatioData *)data)->beat_transition_ratio = message->value/127.0f;
             } break;
             default: {
               printf("Controller %d: %d\n", message->controller, message->value);
@@ -137,6 +163,8 @@ app_process_input(M_Arena *arena, MidiDeviceHandle *midi_handle, WindowEventList
         case MidiStatus_NoteOn: {
           data = push_array(arena, PresetData, 1);
           u8 pad = message->note - 36;
+          ((PresetData *)data)->preset_intensity = message->velocity/127.0f;
+
           if (pad <= 9) {
             event = InputEvent_LoadPreset;
             ((PresetData *)data)->preset_slot = PresetSlot_Primary;
@@ -155,7 +183,7 @@ app_process_input(M_Arena *arena, MidiDeviceHandle *midi_handle, WindowEventList
                 event = InputEvent_ClearTextures;
               } break;
               case 11: {
-                event = InputEvent_ResetPoints;
+                event = InputEvent_PanicAtTheDisco;
               } break;
               case 12: {
                 event = InputEvent_RandomizePreset;

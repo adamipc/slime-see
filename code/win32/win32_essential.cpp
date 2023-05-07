@@ -219,6 +219,60 @@ os_file_read(M_Arena *arena, String8 file_name) {
   return result;
 }
 
+function u8*
+os_file_read_binary(M_Arena *arena, String8 file_name, u64 *bytes_read) {
+  // get handle
+  M_Scratch scratch(arena);
+  String16 file_name16 = str16_from_str8(scratch, file_name);
+  HANDLE file = CreateFileW((WCHAR*)file_name16.str,
+                            GENERIC_READ, 0, 0,
+                            OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL,
+                            0);
+
+  u8 *result = 0;
+  if (file != INVALID_HANDLE_VALUE) {
+    // get size
+    DWORD hi_size = 0;
+    DWORD lo_size = GetFileSize(file, &hi_size);
+    u64 total_size = (((u64)hi_size) << 32) | (u64)lo_size;
+
+    // allocate buffer
+    M_Temp restore_point = m_begin_temp(arena);
+    u8 *buffer = push_array(arena, u8, total_size);
+
+    // read
+    u8 *ptr = buffer;
+    u8 *opl = buffer + total_size;
+    b32 success = true;
+    for (;ptr < opl;) {
+      u64 total_to_read = (u64)(opl - ptr);
+      DWORD to_read = (DWORD)total_to_read;
+      if (total_to_read > max_u32) {
+        to_read = max_u32;
+      }
+      DWORD actual_read = 0;
+      if (!ReadFile(file, ptr, to_read, &actual_read, 0)) {
+        success = false;
+        break;
+      }
+
+      ptr += actual_read;
+    }
+
+    // set result or reset memory
+    if (success) {
+      result = buffer;
+      *bytes_read = total_size;
+    } else {
+      m_end_temp(restore_point);
+    } 
+
+    CloseHandle(file);
+  }
+
+  return result;
+}
+
 function b32
 os_file_write(String8 file_name, String8List data) {
   // get handle

@@ -33,10 +33,6 @@ function Preset
 randomize_preset() {
   Preset result = {};
 
-  u64 seed =0;
-  os_get_entropy(&seed, sizeof(seed));
-  srand((u32)seed);
-
   result.number_of_points = power_of_two(random_range(12, 21)); // 2048 - 2097152
   result.starting_arrangement = (StartingArrangement)random_range(0, StartingArrangement_COUNT);
   result.average_starting_speed = random_range(0, 100) / 100.0f; // 0.0 - 1.0

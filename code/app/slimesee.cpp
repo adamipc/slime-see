@@ -13,6 +13,9 @@ struct shader_1_uniforms {
   float vertex_radius;
   float search_angle;
   float time;
+  float transition_time;
+  int   color_strategy_old;
+  float color_swap;
 };
 
 struct screenshot_data {
@@ -25,11 +28,35 @@ struct screenshot_data {
 };
 
 function void
-slimesee_transition_preset(SlimeSee *slimesee, Preset new_preset, f32 transition_start, f32 transition_length) {
-  slimesee->old_preset = slimesee->primary_preset;
+slimesee_transition_preset(SlimeSee *slimesee, Preset new_preset, f32 intensity) {
+  // TODO(adam): Fix this so it sets old_preset to the same logic as used when drawing
+  slimesee->old_preset = lerp_preset(slimesee->primary_preset, slimesee->secondary_preset, slimesee->blend_value);
   slimesee->primary_preset = new_preset;
-  slimesee->transition_start = transition_start;
-  slimesee->transition_length = transition_length;
+  slimesee->transition_start = slimesee->u_time_ms;
+  // at intensity 1.0 we should transition immediately, 
+  // at 0.0 we should take full transition time of 1 second
+  slimesee->transition_length_ms = lerp_f32(1000.0f, intensity, 0.0f);
+  // at intensity of 1.0 we should regenerate the points immediately
+  if (intensity == 1.0f) {
+    slimesee_reset_points(slimesee);
+  }
+  // above 0.5 intensity we should reset the textures
+  if (intensity > 0.5f) {
+    slimesee_clear_textures(slimesee);
+  }
+}
+
+function void 
+slimesee_set_beat_transition_ratio(SlimeSee *slimesee, f32 ratio) {
+  slimesee->beat_transition_ratio = ratio;
+}
+
+function void 
+slimesee_beat_transition(SlimeSee *slimesee) {
+  //printf("beat transition start: %0.2f\n", slimesee->u_time_ms);
+  slimesee->transition_start = slimesee->u_time_ms;
+  slimesee->transition_length_ms = slimesee->beat_transition_ms;
+  slimesee->beat_transition = true;
 }
 
 // ThreadProc for writing screenshot data to a file
@@ -80,9 +107,9 @@ slimesee_screenshot(M_Arena *arena, SlimeSee *slimesee) {
 }
 
 function void
-slimesee_reset_points(M_Arena *arena, SlimeSee *slimesee) {
+slimesee_reset_points(SlimeSee *slimesee) {
   // TODO(adam): make this use the transition preset?
-  pipeline_generate_initial_positions(arena, &slimesee->pipeline, &slimesee->primary_preset);
+  pipeline_generate_initial_positions(&slimesee->pipeline, &slimesee->primary_preset);
 }
 
 function void
@@ -119,6 +146,10 @@ draw_shader_1(Pipeline *pipeline, shader_1_uniforms *uniforms) {
   glUniform1f(pipeline->u_vertex_radius_location_1, uniforms->vertex_radius);
   glUniform1f(pipeline->u_search_angle_location_1, uniforms->search_angle);
   glUniform1f(pipeline->u_time_location_1, uniforms->time);
+  glUniform1f(pipeline->u_transition_time_location_1, uniforms->transition_time);
+  glUniform1f(pipeline->u_color_swap_location_1, uniforms->color_swap);
+  glUniform1i(pipeline->u_color_strategy_old_location_1, uniforms->color_strategy_old);
+
 
   // Update points
   glBindBuffer(GL_ARRAY_BUFFER, pipeline->position_buffers[0]);
@@ -181,6 +212,7 @@ draw_shader_2(Pipeline *pipeline, shader_2_uniforms *uniforms) {
 
   glBindFramebuffer(GL_FRAMEBUFFER, pipeline->framebuffer);
   glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, pipeline->target_textures[1], 0);
+  glClearColor(0.0f, 0.0f, 0.0f, 0.1f);
   glClear(GL_COLOR_BUFFER_BIT);
   glBindBuffer(GL_ARRAY_BUFFER, pipeline->vertex_buffer);
 
@@ -197,41 +229,92 @@ draw_shader_2(Pipeline *pipeline, shader_2_uniforms *uniforms) {
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
   // Draw to the screen
-  glClear(GL_COLOR_BUFFER_BIT);
+  //glClear(GL_COLOR_BUFFER_BIT);
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  glEnable(GL_BLEND);
   glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+  glDisable(GL_BLEND);
 }
 
 function SlimeSee*
-slimesee_init(M_Arena *arena, Preset *preset, int width, int height) {
+slimesee_init(M_Arena *arena, int width, int height) {
   SlimeSee *slimesee = push_array(arena, SlimeSee, 1);
   slimesee->width = width;
   slimesee->height = height;
-  slimesee->primary_preset = *preset;
-  slimesee->secondary_preset = *preset;
-  slimesee->beat_preset = *preset;
-  slimesee->old_preset = *preset;
+  slimesee->primary_preset = randomize_preset();
+  slimesee->secondary_preset = randomize_preset();
+  slimesee->beat_preset = randomize_preset();
+  slimesee->old_preset = slimesee->primary_preset;
   slimesee->transition_start = 0.0f;
-  slimesee->transition_length = 0.0f;
-  slimesee->pipeline = *create_pipeline(arena, preset, width, height);
+  slimesee->transition_length_ms = 0.0f;
+  slimesee->beat_transition_ms = 37.5f; // sixteenth beat at 120bpm
+  slimesee->beat_transition = false;
+  slimesee->beat_transition_ratio = 0.0f;
+  slimesee->u_time_ms = 0.f;
+  slimesee->color_swap = 0.f;
+  slimesee->pipeline = *create_pipeline(arena, &slimesee->primary_preset, width, height);
   return slimesee;
 }
 
-function void
-slimesee_draw(SlimeSee *slimesee, float u_time) {
-  f32 transition_now = abs_f32(u_time - slimesee->transition_start);
-  b32 transition_in_progress = transition_now < slimesee->transition_length;
+function void 
+slimesee_update_time(SlimeSee* slimesee, u64 elapsed_time_microseconds) {
+  slimesee->u_time_ms += (f32)elapsed_time_microseconds / 10000.0f;
+}
 
-  Preset draw_preset;
+function void
+slimesee_draw(SlimeSee *slimesee) {
+  f32 transition_now = abs_f32(slimesee->u_time_ms - slimesee->transition_start);
+  b32 transition_in_progress = transition_now < slimesee->transition_length_ms;
+
+  b32 beat_transition = slimesee->beat_transition;
+
+  // Update these before setting draw_preset
+  // by default Blend between primary and secondary preset
+  Preset transition_source = slimesee->primary_preset;
+  Preset transition_destination = slimesee->secondary_preset;
+  f32 transition_progress = slimesee->blend_value;
+
+  Preset draw_preset = lerp_preset(transition_source, transition_destination, transition_progress);
+
   if (transition_in_progress) {
-    f32 transition_progress = transition_now / slimesee->transition_length;
-    draw_preset = lerp_preset(slimesee->old_preset, slimesee->primary_preset, transition_progress);
+    transition_progress = transition_now / slimesee->transition_length_ms;
+    if (beat_transition) {
+      // NOTE(adam): slimesee->beat_transition_ratio is a value from 0.0 to 1.0
+      // we will use it to decide how much of the beat transition should be from
+      // the draw_preset to the beat preset and how much should be from the beat_preset
+      // back to the draw_preset
+      // 0.0 means the transition starts at the beat preset and spends the entire transition_length_ms
+      // going back to the beat preset
+      // 1.0 means it spends the entire transition_length_ms going from the draw_preset to the beat preset
+      // 0.5 means it spends half the transition_length_ms going from the draw_preset to the beat preset
+      // and the other half going from the beat preset back to the draw_preset
+
+      if (transition_progress < slimesee->beat_transition_ratio) {
+        transition_source = draw_preset;
+        transition_destination = slimesee->beat_preset;
+        transition_progress = transition_progress / slimesee->beat_transition_ratio;
+      } else {
+        transition_progress = (transition_progress - slimesee->beat_transition_ratio) / (1.0f - slimesee->beat_transition_ratio);
+        transition_source = slimesee->beat_preset;
+        transition_destination = draw_preset;
+      }
+    } else {
+      transition_source = slimesee->old_preset;
+      transition_destination = draw_preset;
+    }
   } else {
-    // Blend between primary and secondary preset
-    draw_preset = lerp_preset(slimesee->primary_preset, slimesee->secondary_preset, slimesee->blend_value);
+    if (beat_transition) {
+      slimesee->beat_transition = false;
+    }
   }
 
+  draw_preset = lerp_preset(transition_source, transition_destination, transition_progress);
+
+
+  glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+
   shader_1_uniforms uniforms_1 = {};
-  uniforms_1.time = u_time;
+  uniforms_1.time = slimesee->u_time_ms;
   uniforms_1.texture0 = 0;
   uniforms_1.texture1 = 1;
   uniforms_1.speed_multiplier = draw_preset.speed_multiplier;
@@ -241,15 +324,20 @@ slimesee_draw(SlimeSee *slimesee, float u_time) {
   uniforms_1.trail_strength = draw_preset.trail_strength;
   uniforms_1.search_radius = draw_preset.search_radius;
   uniforms_1.wall_strategy = draw_preset.wall_strategy;
-  uniforms_1.color_strategy = draw_preset.color_strategy;
   uniforms_1.search_angle = 0.2f;
+  
+  // for color transitions
+  uniforms_1.color_strategy = transition_destination.color_strategy;
+  uniforms_1.color_strategy_old = transition_source.color_strategy;
+  uniforms_1.transition_time = transition_progress;
+  uniforms_1.color_swap = slimesee->color_swap;
 
   draw_shader_1(&slimesee->pipeline, &uniforms_1);
 
   shader_2_uniforms uniforms_2 = {};
   uniforms_2.texture0 = 0;
   uniforms_2.texture1 = 1;
-  uniforms_2.time = u_time;
+  uniforms_2.time = slimesee->u_time_ms;
   uniforms_2.fade_speed = draw_preset.fade_speed;
   uniforms_2.blur_fraction = draw_preset.blurring;
   draw_shader_2(&slimesee->pipeline, &uniforms_2);

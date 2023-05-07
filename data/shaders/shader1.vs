@@ -19,6 +19,11 @@ uniform float u_vertex_radius;
 uniform float u_search_angle;
 uniform float u_max_distance;
 
+// for transitioning between colors
+uniform int u_color_strategy_old;
+uniform float u_transition_time;
+uniform float u_color_swap;
+
 // Passed to fragment shader
 varying vec4 v_color;
 
@@ -30,6 +35,66 @@ vec3 hsv2rgb(vec3 c) {
   vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
   vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
   return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+}
+
+vec4 get_color(int color_strategy, float direction, float speed_var, float x_new, float y_new) {
+  // Set the color of this vert
+  float r = 0.0;
+  float g = 0.0;
+  float b = 0.0;
+
+  // Color strategy
+  switch (color_strategy) {
+    case 0:
+      r = (sin(direction) + 1.0) / 2.0;
+      b = (cos(direction) + 1.0) / 2.0;
+      g = u_trail_strength;
+      break;
+    case 1:
+      r = speed_var*50.0;
+      g = r;
+      b = u_trail_strength;
+      break;
+    case 2:
+      r = abs(y_new)/2.0 + 0.5;
+      g = abs(x_new)/2.0 + 0.5;
+      b = u_trail_strength;
+      break;
+    case 3:
+      r = u_trail_strength;
+      g = r;
+      b = r;
+      break;
+      // Color strategy 4: Hue shifting based on position
+    case 4:
+      float distanceFromCenter = sqrt(x_new * x_new + y_new * y_new);
+      float normalizedDistance = distanceFromCenter / 1.7;
+      float hue = atan(y_new, x_new) / (2.0 * 3.14159) + mod(u_time/10.0,1.0);
+      vec3 hsv = vec3(hue, 1.0-normalizedDistance, 1.0);
+      vec3 rgb = hsv2rgb(hsv); 
+      r = rgb.r;
+      g = rgb.g;
+      b = rgb.b;
+      break;
+      // Color strategy 5: Gradient based on distance from center
+    case 5:
+      distanceFromCenter = sqrt(x_new * x_new + y_new * y_new);
+      normalizedDistance = distanceFromCenter / 1.3;
+      r = mix(0.2, 1.0, normalizedDistance);
+      g = mix(0.5, 1.0, normalizedDistance);
+      b = u_trail_strength;
+      break;
+
+      // Color strategy 6: Color oscillation based on time
+    case 6:
+      float timeFactor = sin(u_time * 0.5);
+      r = 0.5 + 0.5 * sin(2.0 * 3.14159 * (x_new + y_new) + timeFactor);
+      g = 0.5 + 0.5 * sin(2.0 * 3.14159 * (x_new - y_new) + timeFactor);
+      b = u_trail_strength;
+      break;
+  }
+
+  return vec4(r, g, b, 1.0);
 }
 
 void main() {
@@ -109,26 +174,26 @@ void main() {
       randomAngle = rand(texcoord+tex_val.xy)*u_random_steer_factor;
     case 2:
       // reverse direction if hitting wall
-      if (y_new + speed*sin(direction) > 0.90) {
+      if (y_new + speed*sin(direction) > 0.95) {
         float d = atan(sin(direction), cos(direction));
         direction -= 2.0*d + randomAngle;
       }
-      if (y_new + speed*sin(direction) < -0.90) {
+      if (y_new + speed*sin(direction) < -0.95) {
         float d = atan(sin(direction), cos(direction));
         direction -= 2.0*d + randomAngle;
       }
-      if (x_new + speed*cos(direction) > 0.90) {
+      if (x_new + speed*cos(direction) > 0.95) {
         float d = atan(cos(direction), sin(direction));
         direction += 2.0*d + randomAngle;
       }
-      if (x_new + speed*cos(direction) < -0.90) {
+      if (x_new + speed*cos(direction) < -0.95) {
         float d = atan(cos(direction), sin(direction));
         direction += 2.0*d + randomAngle;
       }
       break;
       // Slow and reverse
     case 4:
-      float boundary = 0.75;
+      float boundary = 0.85;
       float slowdownFactor = 0.75;
 
       if (y_new + speed * sin(direction) > boundary || y_new + speed * sin(direction) < -boundary) {
@@ -146,63 +211,20 @@ void main() {
   y_new += speed*u_speed_multiplier*sin(direction);
   x_new += speed*u_speed_multiplier*cos(direction);
 
-  // Set the color of this vert
-  float r = 0.0;
-  float g = 0.0;
-  float b = 0.0;
+  v_color = get_color(u_color_strategy, direction, speed_var, x_new, y_new);
 
-  // Color strategy
-  switch (u_color_strategy) {
-    case 0:
-      r = sin(direction);
-      g = cos(direction);
-      b = u_trail_strength;
-      break;
-    case 1:
-      r = speed_var*50.0;
-      g = r;
-      b = u_trail_strength;
-      break;
-    case 2:
-      r = abs(y_new)/2.0 + 0.5;
-      g = abs(x_new)/2.0 + 0.5;
-      b = u_trail_strength;
-      break;
-    case 3:
-      r = u_trail_strength;
-      g = r;
-      b = r;
-      break;
-      // Color strategy 4: Hue shifting based on position
-    case 4:
-      float distanceFromCenter = sqrt(x_new * x_new + y_new * y_new);
-      float normalizedDistance = distanceFromCenter / 1.7;
-      float hue = atan(y_new, x_new) / (2.0 * 3.14159) + mod(u_time/10.0,1.0);
-      vec3 hsv = vec3(hue, 1.0-normalizedDistance, 1.0);
-      vec3 rgb = hsv2rgb(hsv); 
-      r = rgb.r;
-      g = rgb.g;
-      b = rgb.b;
-      break;
-      // Color strategy 5: Gradient based on distance from center
-    case 5:
-      distanceFromCenter = sqrt(x_new * x_new + y_new * y_new);
-      normalizedDistance = distanceFromCenter / 1.3;
-      r = mix(0.2, 1.0, normalizedDistance);
-      g = mix(0.5, 1.0, normalizedDistance);
-      b = u_trail_strength;
-      break;
-
-      // Color strategy 6: Color oscillation based on time
-    case 6:
-      float timeFactor = sin(u_time * 0.5);
-      r = 0.5 + 0.5 * sin(2.0 * 3.14159 * (x_new + y_new) + timeFactor);
-      g = 0.5 + 0.5 * sin(2.0 * 3.14159 * (x_new - y_new) + timeFactor);
-      b = u_trail_strength;
-      break;
+  if (u_transition_time >= 0.0) {
+    vec4 v_color_old = get_color(u_color_strategy_old, direction, speed_var, x_new, y_new);
+    // transition from v_color_old to v_color using u_transition_time (0.0 to 1.0)
+    v_color = mix(v_color_old, v_color, u_transition_time);
   }
 
-  v_color = vec4(r, g, b, 1.0);
+  // u_color_swap: from 0.0 to 0.5 we should swap red to green, green to blue, and blue to red
+  // from 0.5 to 1.0 we swap again so red ends up in blue, green in red and blue in green
+  v_color = mix(v_color, vec4(v_color.b, v_color.r, v_color.g, v_color.a), u_color_swap*2.0 - 1.0);
+  if (u_color_swap >= 0.5) {
+    v_color = mix(v_color, vec4(v_color.b, v_color.r, v_color.g, v_color.a), u_color_swap*2.0 - 1.0);
+  }
 
   // Send back the position and size
   gl_Position = vec4(x_new, y_new, speed_var/1000.0, 1.0+direction/1000.0);
