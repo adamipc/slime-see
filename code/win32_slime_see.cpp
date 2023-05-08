@@ -444,16 +444,16 @@ WinMain(HINSTANCE Instance,
           switch (data->window_param)
           {
             case GlitchWindowParam_X: {
-              glitchViewportX = data->glitch_value;
+              glitchViewportX += data->glitch_value;
             } break;
             case GlitchWindowParam_Y: {
-              glitchViewportY = data->glitch_value;
+              glitchViewportY += data->glitch_value;
             } break;
             case GlitchWindowParam_Width: {
-              glitchWindowWidth = data->glitch_value;
+              glitchWindowWidth += data->glitch_value;
             } break;
             case GlitchWindowParam_Height: {
-              glitchWindowHeight = data->glitch_value;
+              glitchWindowHeight += data->glitch_value;
             } break;
           }
         } break;
@@ -465,10 +465,10 @@ WinMain(HINSTANCE Instance,
               slimesee_transition_preset(slimesee, new_preset, data->preset_intensity);
             } break;
             case PresetSlot_Secondary: {
-              slimesee->secondary_preset = new_preset;
+              slimesee_set_preset(slimesee, PresetSlot_Secondary, new_preset);
             } break;
             case PresetSlot_Beat: {
-              slimesee->beat_preset = new_preset;
+              slimesee_set_preset(slimesee, PresetSlot_Beat, new_preset);
             } break;
             default: {
               printf("Unhandled preset slot: %d\n", data->preset_slot);
@@ -483,10 +483,10 @@ WinMain(HINSTANCE Instance,
               slimesee_transition_preset(slimesee, new_preset, data->preset_intensity);
             } break;
             case PresetSlot_Secondary: {
-              slimesee->secondary_preset = new_preset;
+              slimesee_set_preset(slimesee, PresetSlot_Secondary, new_preset);
             } break;
             case PresetSlot_Beat: {
-              slimesee->beat_preset = new_preset;
+              slimesee_set_preset(slimesee, PresetSlot_Beat, new_preset);
             } break;
             default: {
               printf("Unhandled preset slot: %d\n", data->preset_slot);
@@ -502,8 +502,8 @@ WinMain(HINSTANCE Instance,
           beat_detector_set_sensitivity(detector, data->beat_sensitivity);
         } break;
         case InputEvent_PanicAtTheDisco: {
-          slimesee_reset_points(slimesee);
           glitchViewportX = glitchViewportY = glitchWindowHeight = glitchWindowWidth = 0;
+          slimesee_reset_points(slimesee);
         } break;
         case InputEvent_ClearTextures: {
           slimesee_clear_textures(slimesee);
@@ -516,15 +516,15 @@ WinMain(HINSTANCE Instance,
         } break;
         case InputEvent_UpdateBlendValue: {
           BlendValueData *data = (BlendValueData *)node->data;
-          slimesee->blend_value = data->blend_value;
+          slimesee_set_blend_value(slimesee, data->blend_value);
         } break;
         case InputEvent_UpdateBeatTransitionTime: {
           BeatTransitionTimeData *data = (BeatTransitionTimeData *)node->data;
-          slimesee->beat_transition_ms = data->beat_transition_ms;
+          slimesee_set_beat_transition_ms(slimesee, data->beat_transition_ms);
         } break;
         case InputEvent_UpdateColorSwap: {
           ColorSwapData *data = (ColorSwapData *)node->data;
-          slimesee->color_swap = data->color_swap;
+          slimesee_set_color_swap(slimesee, data->color_swap);
         } break;
         case InputEvent_ToggleAutomation: {
           AutomatePresets = !AutomatePresets;
@@ -532,19 +532,29 @@ WinMain(HINSTANCE Instance,
         case InputEvent_ToggleFullscreen: {
         IsFullscreen = ToggleFullscreen(window.window, IsFullscreen);
         } break;
+        case InputEvent_DumpState: {
+          SlimeSeeState *state = slimesee_dump_state(scratch, slimesee);
+          slimeseestate_write_to_file(state, str8_lit("slimesee.state"));
+        } break;
+        case InputEvent_LoadState: {
+          SlimeSeeState *state = slimeseestate_read_from_file(scratch, str8_lit("slimesee.state"));
+          if (state != 0) {
+            slimesee_load_state(slimesee, state);
+          }
+        } break;
         default: {
           printf("Unhandled event: %02x\n", node->event);
-          Assert(false);
         } break;
       }
     };
 
     // THis is here for debugging purposes but should be moved back before main drawing
     u32 samples_read = read_audio(scratch, audio_device, audio_buffer, audio_buffer_size, &audio_buffer_running_sample_index);
-    b32 is_beat = beat_detector_process_audio(scratch, detector, audio_buffer, samples_read, audio_buffer_running_sample_index);
+    f32 beat_intensity = beat_detector_process_audio(scratch, detector, audio_buffer, samples_read, audio_buffer_running_sample_index);
 
-    if (is_beat) {
-      slimesee_beat_transition(slimesee);
+    if (beat_intensity > 0.0f) {
+      printf("Beat intensity: %f\n", beat_intensity);
+      slimesee_beat_transition(slimesee, beat_intensity);
     }
 
     if (GlobalResizeTriggered) {
@@ -563,7 +573,7 @@ WinMain(HINSTANCE Instance,
 
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
-    graph_frequencies(scratch, audio_device, audio_buffer, audio_buffer_size);
+    //graph_frequencies(scratch, audio_device, audio_buffer, audio_buffer_size);
     slimesee_draw(slimesee);
 
     // NOTE(adam): re-init buffer if it gets bigger, just change size if smaller
@@ -593,7 +603,7 @@ WinMain(HINSTANCE Instance,
 
     u64 elapsed_time = end_time - last_time;
     last_time = end_time;
-    slimesee_update_time(slimesee, elapsed_time);
+    slimesee_update_time(slimesee, elapsed_time, AutomatePresets);
 
     f32 frame_time_ms = elapsed_time / 1000.0f;
     f32 fps = 1000.0f / frame_time_ms;

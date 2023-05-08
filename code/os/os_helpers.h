@@ -33,7 +33,6 @@ function M_Arena*  os_tctx_get_scratch(M_Arena **conflict_array, u32 count);
 ///// NOTE(adam): Files
 
 function b32 os_file_write(String8 file_name, String8 data);
-function u8* os_file_read_binary(M_Arena *arena, String8 file_name, u64 *bytes_read);
 
 //////////////////////////////////////
 ///// NOTE(adam): Scratch Arena Wrapper

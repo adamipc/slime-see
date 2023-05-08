@@ -219,6 +219,7 @@ void CALLBACK MidiInProc(HMIDIIN hMidiIn, UINT wMsg,
       printf("MIM_CLOSE\n");
     } break;
     case MIM_DATA: {
+      //printf("MIM_DATA: 0x%08llx 0x%08llx\n", dwParam1, dwParam2);
       MidiMessage msg = {};
       msg.timestamp = dwParam2;
       msg.status = (dwParam1 & 0xF0);

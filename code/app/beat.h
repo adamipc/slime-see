@@ -43,6 +43,7 @@ struct PeakPicker {
 struct PeakPickerState_ThresholdDecayDelay {
   f32 threshold;
   f32 min_threshold;
+  f32 max_value;
   f32 decay_factor;
   f32 delay_ms;
   u32 last_peak_sample_index;
@@ -83,9 +84,9 @@ struct BeatDetector {
 };
 
 function BeatDetector* beat_detector_init(M_Arena *arena, u32 sample_rate, OnsetDetectionMethod odm, PeakPickerType ppt);
-function b32 beat_detector_process_audio(M_Arena *arena, BeatDetector *detector, f32 *audio_buffer, u32 samples_read, u32 running_buffer_index);
+function f32 beat_detector_process_audio(M_Arena *arena, BeatDetector *detector, f32 *audio_buffer, u32 samples_read, u32 running_buffer_index);
 function void draw_peaks_local_maxima(PeakPickerState_LocalMaxima *state, f32 normalized_value, f32 local_mean, b32 is_peak);
-function b32 peak_picker_process(PeakPicker *peak_picker, f32 latest_value, u32 frame_index, u32 sample_rate);
+function b32 peak_picker_process(PeakPicker *peak_picker, f32 latest_value, u32 frame_index, u32 sample_rate, f32 *intensity_out);
 function void beat_detector_set_sensitivity(BeatDetector *detector, f32 sensitivity);
 
 #endif BEAT_H

@@ -42,7 +42,9 @@ function void* os_thread_context_get(void);
 ///// NOTE(adam): File Handling
 
 function String8 os_file_read(M_Arena *arena, String8 file_name);
+function u8*     os_file_read_binary(M_Arena *arena, String8 file_name, u64 *bytes_read);
 function b32     os_file_write(String8 file_name, String8List data);
+function b32     os_file_write_binary(String8 file_name, u8 *data, u64 size);
 
 function FileProperties os_file_properties(String8 file_name);
 

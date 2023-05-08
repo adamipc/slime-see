@@ -68,6 +68,8 @@ function void  m_arena_align_zero(M_Arena *arena, u64 pow2_align);
 
 #define push_array(a,T,c) (T*)m_arena_push((a), sizeof(T)*(c))
 #define push_array_zero(a,T,c) (T*)m_arena_push_zero((a), sizeof(T)*(c))
+#define push_struct(a,T) (T*)m_arena_push((a), sizeof(T)*1)
+#define push_struct_zero(a,T) (T*)m_arena_push_zero((a), sizeof(T)*1)
 
 function M_Temp  m_begin_temp(M_Arena *arena);
 function void    m_end_tem(M_Temp temp);

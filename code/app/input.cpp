@@ -80,6 +80,7 @@ app_process_input(M_Arena *arena, MidiDeviceHandle *midi_handle, WindowEventList
           } else if (data->VKCode == 'R') {
             PresetData *preset_data = push_array(arena, PresetData, 1);
             preset_data->preset_slot = PresetSlot_Primary;
+            preset_data->preset_intensity = 1.0f;
             inputevent_list_push(arena, &result, InputEvent_RandomizePreset, preset_data);
           } else if (data->VKCode == 'P') {
             inputevent_list_push(arena, &result, InputEvent_PanicAtTheDisco, 0);
@@ -87,6 +88,8 @@ app_process_input(M_Arena *arena, MidiDeviceHandle *midi_handle, WindowEventList
             inputevent_list_push(arena, &result, InputEvent_ClearTextures, 0);
           } else if (data->VKCode == 'S') {
             inputevent_list_push(arena, &result, InputEvent_DumpState, 0);
+          } else if (data->VKCode == 'L') {
+            inputevent_list_push(arena, &result, InputEvent_LoadState, 0);
           } else if (data->VKCode == 'A') {
             inputevent_list_push(arena, &result, InputEvent_ToggleAutomation, 0);
           } else if (data->VKCode == VK_BACK) {
@@ -96,6 +99,7 @@ app_process_input(M_Arena *arena, MidiDeviceHandle *midi_handle, WindowEventList
             PresetData *preset_data = push_array(arena, PresetData, 1);
             preset_data->preset_slot = PresetSlot_Primary;
             preset_data->preset_name = (PresetNames)preset_index + 1;
+            preset_data->preset_intensity = 1.0f;
             inputevent_list_push(arena, &result, InputEvent_LoadPreset, preset_data);
           }
         }
@@ -113,7 +117,17 @@ app_process_input(M_Arena *arena, MidiDeviceHandle *midi_handle, WindowEventList
       InputEvents event = InputEvent_None;
       void *data = 0;
       switch (message->status) {
+        case MidiStatus_ProgramChange: {
+          //printf("Program change: %d\n", message->program);
+          // Ignore for now
+        } break;
+        case MidiStatus_PolyphonicKeyPressure: {
+          //printf("Polyphonic key pressure: %d %d\n", message->poly_note, message->poly_pressure);
+          // Ignore for now
+        } break;
         case MidiStatus_ControlChange: {
+          //printf("Control change: %d %d\n", message->controller, message->value);
+          //printf("Debug byte1: %02x, byte2: %02x\n", message->byte1, message->byte2);
           switch (message->controller) {
             case 3: {
               event = InputEvent_UpdateBlendValue;
@@ -134,7 +148,10 @@ app_process_input(M_Arena *arena, MidiDeviceHandle *midi_handle, WindowEventList
               event = InputEvent_UpdateWindowGlitch;
               data = push_array(arena, GlitchWindowData, 1);
               ((GlitchWindowData *)data)->window_param = (GlitchWindowParam)(message->controller - 12);
-              ((GlitchWindowData *)data)->glitch_value = (u32)(message->value/127.0f * 20 - 10);
+              // Our controller sends values from 0 to 127, but we want to map it to -64 to 64
+              // We want to map 0 to 0, 127 through 64 to -1 through -64 and 1 through 63 to 1 through 63
+
+              ((GlitchWindowData *)data)->glitch_value = (message->value < 64) ? (message->value) : (message->value - 128);
             } break;
             case 16: {
               event = InputEvent_UpdateColorSwap;

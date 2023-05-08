@@ -207,7 +207,16 @@ function b32 peak_picker_threshold_decay_delay(PeakPickerState_ThresholdDecayDel
       //printf("latest_value: %0.4f, threshold: %0.4f ms since last peak: %0.4f\n", latest_value, state->threshold, ms_since_last_peak);
       result = true;
 
-      if (latest_value > state->min_threshold) {
+      if (latest_value > state->max_value) {
+        state->max_value = latest_value;
+      } else {
+        state->max_value *= state->decay_factor;
+        if (state->max_value < state->min_threshold) {
+          state->max_value = state->min_threshold;
+        }
+      }
+
+      if (latest_value > state->threshold) {
         state->threshold = latest_value;
       }
 
@@ -237,14 +246,22 @@ function b32 peak_picker_threshold_decay(PeakPickerState_ThresholdDecay *state, 
 }
 
 function b32 
-peak_picker_process(PeakPicker *peak_picker, f32 latest_value, u32 frame_index, u32 sample_rate) {
+peak_picker_process(PeakPicker *peak_picker, f32 latest_value, u32 frame_index, u32 sample_rate, f32 *intensity_out) {
   b32 result = false;
   switch(peak_picker->type) {
     case PeakPickerType_LocalMaxima: {
       result = peak_picker_local_maxima((PeakPickerState_LocalMaxima*)peak_picker->state, latest_value);
     } break;
     case PeakPickerType_ThresholdDecayDelay: {
-      result = peak_picker_threshold_decay_delay((PeakPickerState_ThresholdDecayDelay*)peak_picker->state, latest_value, frame_index, sample_rate);
+      PeakPickerState_ThresholdDecayDelay *state = (PeakPickerState_ThresholdDecayDelay*)peak_picker->state;
+      f32 original_threshold = state->min_threshold;
+      result = peak_picker_threshold_decay_delay(state, latest_value, frame_index, sample_rate);
+      if (result) {
+        f32 threshold_to_max = state->max_value - original_threshold;
+        f32 above_threshold = latest_value - original_threshold;
+        *intensity_out = above_threshold / threshold_to_max;
+        printf("above_threshold: %f, threshold_to_max: %f, intensity: %f\n", above_threshold, threshold_to_max, *intensity_out);
+      }
     } break;
     case PeakPickerType_ThresholdDecay: {
       result = peak_picker_threshold_decay((PeakPickerState_ThresholdDecay*)peak_picker->state, latest_value);
@@ -260,9 +277,9 @@ peak_picker_process(PeakPicker *peak_picker, f32 latest_value, u32 frame_index, 
   return result;
 }
 
-function b32
+function f32
 beat_detector_process_audio(M_Arena *arena, BeatDetector *detector, f32 *audio_buffer, u32 samples_read, u32 running_buffer_index) {
-  b32 result = false;
+  f32 result = 0.f;
 
   M_Scratch scratch(arena);
   u32 sample_rate = detector->sample_rate;
@@ -326,10 +343,12 @@ beat_detector_process_audio(M_Arena *arena, BeatDetector *detector, f32 *audio_b
       } break;
     }
 
-    is_beat = peak_picker_process(detector->peak_picker, latest_value, detector->last_frame_index, detector->sample_rate);
+    f32 intensity = 1.f;
+    is_beat = peak_picker_process(detector->peak_picker, latest_value, detector->last_frame_index, detector->sample_rate, &intensity);
 
     if (is_beat) {
-      result = true;
+      // map from 0 to 1 with 0 being just at threshold and 1 being the max value
+      result = intensity;
     }
 
     new_samples = running_buffer_index - detector->last_frame_index;
@@ -364,6 +383,7 @@ peak_picker_init(M_Arena *arena, PeakPicker *peak_picker, PeakPickerType type) {
       state->decay_factor = 0.992f;
       state->delay_ms = 300.f;
       state->last_peak_sample_index = 0;
+      state->max_value = 0.f;
       peak_picker->state = (PeakPickerState*)state;
     } break;
     case PeakPickerType_ThresholdDecay: {

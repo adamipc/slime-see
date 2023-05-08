@@ -314,6 +314,43 @@ os_file_write(String8 file_name, String8List data) {
   return result;
 }
 
+function b32
+os_file_write_binary(String8 file_name, u8 *data, u64 size) {
+  // get handle
+  M_Scratch scratch;
+  String16 file_name16 = str16_from_str8(scratch, file_name);
+  HANDLE file = CreateFileW((WCHAR*)file_name16.str,
+                            GENERIC_WRITE, 0, 0,
+                            CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL,
+                            0);
+
+  b32 result = false;
+  if (file != INVALID_HANDLE_VALUE) {
+    result = true;
+
+    u8 *ptr = data;
+    u8 *opl = ptr + size;
+
+    for (;ptr < opl;) {
+      u64 total_to_write = (u64)(opl - ptr);
+      DWORD to_write = (DWORD)total_to_write;
+      if (total_to_write > max_u32) {
+        to_write = max_u32;
+      }
+      DWORD actual_write = 0;
+      if (!WriteFile(file, ptr, to_write, &actual_write, 0)) {
+        result = false;
+        break;
+      }
+      ptr += actual_write;
+    }
+
+    CloseHandle(file);
+  }
+
+  return result;
+}
+
 function FilePropertyFlags
 w32_file_property_flags_from_attributes(DWORD attribs) {
   FilePropertyFlags result = 0;

@@ -15,6 +15,7 @@ enum {
   InputEvent_UpdateBeatTransitionTime,
   InputEvent_StopRunning,
   InputEvent_DumpState,
+  InputEvent_LoadState,
   InputEvent_ClearTextures,
   InputEvent_PanicAtTheDisco,
   InputEvent_TakeScreenshot,
@@ -24,13 +25,6 @@ enum {
   InputEvent_UpdateColorSwap,
 
   InputEvent_COUNT,
-};
-
-typedef u8 PresetSlot;
-enum {
-  PresetSlot_Primary = 0,
-  PresetSlot_Secondary = 1,
-  PresetSlot_Beat = 2,
 };
 
 struct PresetData {
@@ -80,7 +74,7 @@ enum {
 };
 
 struct GlitchWindowData {
-  u32 glitch_value;
+  i8 glitch_value;
   GlitchWindowParam window_param;
 };
 
