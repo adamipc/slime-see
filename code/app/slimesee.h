@@ -22,6 +22,7 @@ struct SlimeSee {
   int width;
   int height;
   int screenshot_count;
+  f32 last_time_ms;
   f32 u_time_ms;
   SlimeSeeState *state;
   f32 beat_intensity;

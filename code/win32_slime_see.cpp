@@ -613,7 +613,7 @@ WinMain(HINSTANCE Instance,
     f32 fps = 1000.0f / frame_time_ms;
 
     if ((frame % 61) == 0) {
-      //printf("frame time: %f ms, fps: %f\n", frame_time_ms, fps);
+      printf("frame time: %f ms, fps: %f\n", frame_time_ms, fps);
     }
 
     frame++;

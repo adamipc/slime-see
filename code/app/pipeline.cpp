@@ -7,7 +7,7 @@ generate_initial_positions(M_Arena *arena, Preset *preset) {
     f32 initial_speed = preset->average_starting_speed;
     u64 n = preset->number_of_points;
     f32 *result = push_array(arena, f32, n*4);
-    printf("Starting arrangement: %d\n", preset->starting_arrangement);
+    //printf("Starting arrangement: %d\n", preset->starting_arrangement);
     for (u64 i = 0; i < n; ++i) {
       f32 pi_times_2_over_n = pi_f32*2.0f/((f32)n);
       f32 frac_pi_2 = pi_f32/2.0f;

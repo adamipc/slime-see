@@ -208,8 +208,8 @@ void main() {
   }
 
   // Update position based on direction
-  y_new += speed*u_speed_multiplier*sin(direction);
-  x_new += speed*u_speed_multiplier*cos(direction);
+  y_new += speed*u_speed_multiplier*sin(direction)*u_time;
+  x_new += speed*u_speed_multiplier*cos(direction)*u_time;
 
   v_color = get_color(u_color_strategy, direction, speed_var, x_new, y_new);
 

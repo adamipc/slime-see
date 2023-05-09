@@ -539,6 +539,7 @@ slimesee_init(M_Arena *arena, int width, int height) {
 
 function void 
 slimesee_update_time(SlimeSee* slimesee, u64 elapsed_time_microseconds, b32 automate_presets) {
+  slimesee->last_time_ms = slimesee->u_time_ms;
   slimesee->u_time_ms += (f32)elapsed_time_microseconds / 10000.0f;
 
   if (automate_presets) {
@@ -619,8 +620,10 @@ slimesee_draw(SlimeSee *slimesee) {
 
   glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
+  f32 u_time = slimesee->u_time_ms - slimesee->last_time_ms;
+
   shader_1_uniforms uniforms_1 = {};
-  uniforms_1.time = slimesee->u_time_ms;
+  uniforms_1.time = u_time;
   uniforms_1.texture0 = 0;
   uniforms_1.texture1 = 1;
   uniforms_1.speed_multiplier = draw_preset.speed_multiplier;
