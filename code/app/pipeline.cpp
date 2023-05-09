@@ -112,9 +112,9 @@ pipeline_set_resolution(Pipeline *pipeline, int width, int height) {
 
 function void
 pipeline_reset_target_textures(Pipeline *pipeline, int width, int height) {
-  if (pipeline->target_textures[1] != 0) {
-    glDeleteTextures(2, pipeline->target_textures);
-  }
+  GLuint old_texture0 = pipeline->target_textures[0];
+  GLuint old_texture1 = pipeline->target_textures[1];
+
   // Create a target texture and attach to our framebuffer
   glGenTextures(2, pipeline->target_textures);
   printf("target_textures[0,1]: [%d,%d]\n", pipeline->target_textures[0], pipeline->target_textures[1]);
@@ -130,11 +130,20 @@ pipeline_reset_target_textures(Pipeline *pipeline, int width, int height) {
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);   // GL_LINEAR
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);   // GL_LINEAR
   glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+
+  // Do this after generating new textures so opengl doesn't possibly give us the same ones
+  if (old_texture1 != 0) {
+    glClearTexImage(old_texture0, 0, GL_RGBA, GL_FLOAT, 0);
+    glDeleteTextures(1, &old_texture0);
+    glClearTexImage(old_texture1, 0, GL_RGBA, GL_FLOAT, 0);
+    glDeleteTextures(1, &old_texture1);
+  }
 }
 
 function Pipeline*
 create_pipeline(M_Arena *arena, Preset *preset, int width, int height) {
   Pipeline *pipeline = push_array(arena, Pipeline, 1);
+  MemoryZeroStruct(pipeline);
 
   GLenum error_code = GL_NO_ERROR;
 
