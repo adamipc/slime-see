@@ -15,6 +15,7 @@ struct SlimeSeeState {
   f32 transition_length_ms;
   f32 beat_transition_ratio;
   f32 color_swap;
+  String8 name;
 };
 
 struct SlimeSee {
@@ -56,7 +57,7 @@ function void slimesee_set_beat_transition_ms(SlimeSee *slimesee, f32 beat_trans
 function void slimesee_set_blend_value(SlimeSee *slimesee, f32 blend_value);
 function void slimesee_set_color_swap(SlimeSee *slimesee, f32 color_swap);
 function void slimeseestate_write_to_file(SlimeSeeState *state, String8 filename);
-function SlimeSeeState* slimeseestate_read_from_file(M_Arena *arena, String8 filename);
+function b32 slimeseestate_read_from_file(M_Arena *arena, String8 filename, SlimeSeeState *state_out);
 
 #endif // SLIMESEE_H
 

@@ -32,30 +32,6 @@
 #include "app/input.cpp"
 #include "app/beat.cpp"
 
-#define STB_TRUETYPE_IMPLEMENTATION
-#include "stb/stb_truetype.h"
-
-function stbtt_fontinfo*
-stbtt_font_init(M_Arena *arena) {
-  stbtt_fontinfo *result = 0;
-
-  M_Temp restore_point = m_begin_temp(arena);
-
-  stbtt_fontinfo *font_info = push_array(arena, stbtt_fontinfo, 1);
-
-  u64 bytes_read = 0;
-  u8 *font_buffer = os_file_read_binary(arena, str8_lit("../data/fonts/FiraCode-SemiBold.ttf"), &bytes_read);
-
-  if (bytes_read == 0 || !stbtt_InitFont(font_info, font_buffer, 0)) {
-    m_end_temp(restore_point);
-    printf("Failed to init font\n");
-  } else {
-    result = font_info;
-  }
-
-  return result;
-}
-
 global bool GlobalRunning = false;
 global i32 WINDOW_WIDTH = 1280;
 global i32 WINDOW_HEIGHT = 720;
@@ -236,82 +212,55 @@ ToggleFullscreen(HWND window, bool is_fullscreen) {
   return !is_fullscreen;
 }
 
-function void
-draw_overlay(M_Arena *arena, u8* rgba_image, u32 image_width, u32 image_height, stbtt_fontinfo *font_info, os_audio_device *audio_device, SlimeSee *slimesee, b32 is_beat) {
-  M_Scratch scratch;
+function SlimeSeeState *
+load_slimesee_states(M_Arena *arena, String8 state_dir, u64 *state_count) {
+  M_Scratch scratch(arena);
+  SlimeSeeState *result = 0;
 
-  u32 pixel_count = image_width * image_height;
-  MemoryZero(rgba_image, pixel_count*4);
+  String8List state_files = {};
 
-  u32 pad_x = 8;
-  u32 pad_y = 8;
-
-  u32 width = 256;
-  u32 height = 64;
-  u8 *image = push_array(arena, u8, width * height);
-  i32 line_height = 64;
-  f32 scale = (f32)stbtt_ScaleForPixelHeight(font_info, (f32)line_height);
-
-  String8 text = str8_lit("SlimeSee!");
-
-  i32 ascent, descent, line_gap;
-  stbtt_GetFontVMetrics(font_info, &ascent, &descent, &line_gap);
-
-  ascent = (i32)roundf(ascent * scale);
-  descent = (i32)roundf(descent * scale);
-
-  i32 x = 0;
-
-  for (i32 i = 0;
-       i < text.size;
-       ++i) {
-    // how wide this character is
-    i32 ax;
-    i32 lsb;
-    stbtt_GetCodepointHMetrics(font_info, text.str[i], &ax, &lsb);
-
-    // monospaced
-    //ax = 32;
-    //lsb = 64;
-
-    // get bounding box for character (may be offset to account for chars that dip above or below the line)
-    i32 c_x1, c_y1, c_x2, c_y2;
-    stbtt_GetCodepointBitmapBox(font_info, text.str[i], scale, scale, &c_x1, &c_y1, &c_x2, &c_y2);
-
-    // compute y (different characters have different heights
-    i32 y = ascent + c_y1;
-
-    // render character (stride and offset is important here)
-    i32 byte_offset = (pad_x + x + (i32)roundf(lsb * scale)) + ((pad_y + y) * width);
-    stbtt_MakeCodepointBitmap(font_info, image + byte_offset, c_x2 - c_x1, c_y2 - c_y1, width, scale, scale, text.str[i]);
-
-    // advance x
-    x += (i32)roundf(ax * scale);
-
-    // add kerning
-    i32 kern = stbtt_GetCodepointKernAdvance(font_info, text.str[i], text.str[i + 1]);
-    x += (i32)roundf(kern * scale);
+  OS_FileIter iter = os_file_iter_init(state_dir);
+  String8 state_file;
+  FileProperties properties;
+  while (os_file_iter_next(scratch, &iter, &state_file, &properties)) {
+    if (str8_match(str8_postfix(state_file, 6), str8_lit(".state"), StringMatchFlag_NoCase))
+    {
+      str8_list_push(scratch, &state_files, state_file);
+    }
   }
-  
-  for (u32 i = 0;
-       i < width * height;
-       ++i) {
-    rgba_image[i * 4 + 0] = 255;
-    rgba_image[i * 4 + 1] = 180;
-    rgba_image[i * 4 + 2] = 99;
-    rgba_image[i * 4 + 3] = image[i];
+  os_file_iter_end(&iter);
+
+  if (state_files.node_count > 0) {
+    result = push_array(arena, SlimeSeeState, state_files.node_count);
+    u32 i = 0;
+    for (String8Node *node = state_files.first;
+         node != 0;
+         node = node->next) {
+      String8Node nodes[2];
+      String8List list = {};
+      str8_list_push_explicit(&list, state_dir, nodes + 0);
+      str8_list_push_explicit(&list, node->string, nodes + 1);
+
+      String8 state_file_path = str8_join(scratch, &list, 0);
+
+      if(slimeseestate_read_from_file(arena, state_file_path, &result[i])) {
+        printf("Loaded state '%.*s'\n", str8_expand(result[i].name));
+        if (result[i].name.size == 0) {
+          String8 name = str8_chop(node->string, 6);
+          result[i].name = str8_push_copy(arena, name);
+        }
+      } else {
+        result[i] = {};
+      } 
+      ++i;
+    }
+
+    *state_count = state_files.node_count;
   }
 
-  // Draw the image to the screen using OpenGL
-  glRasterPos2i(-1, 1);
-  glPixelZoom(1.0f, -1.0f);
-  glEnable(GL_BLEND);
-  // we have a one channel bitmap so values we want displayed are 255
-  // ones we want transparent are 0
-  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-  glUseProgram(0);
-  glDrawPixels(image_width, image_height, GL_RGBA, GL_UNSIGNED_BYTE, rgba_image);
-  glDisable(GL_BLEND);
+
+  return result;
+
 }
 
 int CALLBACK
@@ -406,7 +355,25 @@ WinMain(HINSTANCE Instance,
 
   GLenum error_code = GL_NO_ERROR;
 
+  // Initialize our random number generator before we create slimesee as it
+  // uses rand to generate random presets on startup.
+  u64 seed =0;
+  os_get_entropy(&seed, sizeof(seed));
+  printf("seed: %llu\n", seed);
+  srand((u32)seed);
+
+
   SlimeSee *slimesee = slimesee_init(scratch, GlobalWindowWidth, GlobalWindowHeight);
+
+  String8 state_dir = str8_lit("../data/state/");
+  u64 state_count = 0;
+  SlimeSeeState *states = load_slimesee_states(scratch, state_dir, &state_count);
+  printf("loaded %lld states\n", state_count);
+  for (u64 i = 0; i < state_count; ++i) {
+    printf("Loaded state: %.*s\n", str8_expand(states[i].name));
+  }
+
+  u64 state_count_write = state_count;
 
   // Enable debugging and clear errors from initialization
   glEnable(GL_DEBUG_OUTPUT);
@@ -418,15 +385,6 @@ WinMain(HINSTANCE Instance,
   u64 last_time = os_now_microseconds();
   u64 frame = 0;
   GlobalRunning = true;
-
-  u64 seed =0;
-  os_get_entropy(&seed, sizeof(seed));
-  srand((u32)seed);
-
-  stbtt_fontinfo *font_info = stbtt_font_init(scratch);
-
-  u8 *debug_buffer = 0;
-  u64 debug_buffer_size = 0;
 
   b32 IsFullscreen = false;
   b32 AutomatePresets = false;
@@ -538,11 +496,12 @@ WinMain(HINSTANCE Instance,
         } break;
         case InputEvent_DumpState: {
           SlimeSeeState *state = slimesee_dump_state(scratch, slimesee);
-          slimeseestate_write_to_file(state, str8_lit("slimesee.state"));
+          slimeseestate_write_to_file(state, str8_pushf(scratch, "../data/state/slimesee_%03d.state", ++state_count_write));
         } break;
         case InputEvent_LoadState: {
-          SlimeSeeState *state = slimeseestate_read_from_file(scratch, str8_lit("slimesee.state"));
-          if (state != 0) {
+          SlimeSeeState *state = push_struct(scratch, SlimeSeeState);
+          // Loads the last written state
+          if(slimeseestate_read_from_file(scratch, str8_pushf(scratch, "../data/state/slimesee_%03d.state", state_count_write), state)) {
             slimesee_load_state(slimesee, state);
           }
         } break;
@@ -552,12 +511,15 @@ WinMain(HINSTANCE Instance,
       }
     };
 
+    u64 audio_start_time = os_now_microseconds();
+
     // THis is here for debugging purposes but should be moved back before main drawing
     u32 samples_read = read_audio(scratch, audio_device, audio_buffer, audio_buffer_size, &audio_buffer_running_sample_index);
     f32 beat_intensity = beat_detector_process_audio(scratch, detector, audio_buffer, samples_read, audio_buffer_running_sample_index);
+    u64 audio_time_taken = os_now_microseconds() - audio_start_time;
 
     if (beat_intensity > 0.0f) {
-      printf("Beat intensity: %f\n", beat_intensity);
+      //printf("Beat intensity: %f\n", beat_intensity);
       slimesee_beat_transition(slimesee, beat_intensity);
     }
 
@@ -580,24 +542,10 @@ WinMain(HINSTANCE Instance,
     //graph_frequencies(scratch, audio_device, audio_buffer, audio_buffer_size);
     slimesee_draw(slimesee);
 
-    // NOTE(adam): re-init buffer if it gets bigger, just change size if smaller
-    if (debug_buffer == 0 || debug_buffer_size != 4*GlobalWindowWidth*GlobalWindowHeight) {
-      u64 new_buffer_size = 4*GlobalWindowWidth*GlobalWindowHeight;
-      if (new_buffer_size > debug_buffer_size) {
-        debug_buffer = push_array(scratch, u8, debug_buffer_size);
-      }
-      debug_buffer_size = new_buffer_size;
-    }
-
-    //draw_overlay(scratch, debug_buffer, GlobalWindowWidth, GlobalWindowHeight, font_info, audio_device, slimesee, is_beat);
-
     error_code = glGetError();
     if (error_code != GL_NO_ERROR) {
       printf("ERROR::OPENGL::%d\n", error_code);
       break;
-    } else 
-    {
-      //printf("no error\n");
     }
 
     SwapBuffers(dc);
@@ -613,7 +561,7 @@ WinMain(HINSTANCE Instance,
     f32 fps = 1000.0f / frame_time_ms;
 
     if ((frame % 61) == 0) {
-      printf("frame time: %f ms, fps: %f\n", frame_time_ms, fps);
+      printf("frame time: %f ms, fps: %f audio time: %f ms\n", frame_time_ms, fps, audio_time_taken / 1000.0f);
     }
 
     frame++;

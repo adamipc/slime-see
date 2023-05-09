@@ -54,6 +54,12 @@ function void slimeseestate_write_to_file(SlimeSeeState *state, String8 filename
 
   // Write the size of the state structure as header for versioning
   str8_list_push(scratch, &list, str8_pushf(scratch, "%d\n", sizeof(SlimeSeeState)));
+  // NOTE(adam): When we try to load the file our implementation that splits lines
+  // will ignore empty lines so we want to make sure that the name has some value
+  if (state->name.size == 0) {
+    state->name = str8_lit("Unnamed");
+  }
+  str8_list_push(scratch, &list, str8_pushf(scratch, "%.*s\n", str8_expand(state->name)));
 
   // Primary Preset
   str8_list_push(scratch, &list, str8_pushf(scratch, "%d\n", state->primary_preset.number_of_points));
@@ -144,10 +150,12 @@ function f32 str8_to_f32(String8 str) {
   return (f32)atof((char*)str.str);
 }
 
-function SlimeSeeState* slimeseestate_read_from_file(M_Arena *arena, String8 filename) {
+function b32 
+slimeseestate_read_from_file(M_Arena *arena, String8 filename, SlimeSeeState *state_out) {
+  b32 result = false;
   M_Scratch scratch(arena);
-  M_Temp restore_point = m_begin_temp(arena);
-  SlimeSeeState *results = push_struct(arena, SlimeSeeState);
+  
+  printf("Attempting to read from file %.*s\n", str8_expand(filename));
 
   String8 file_contents = os_file_read(scratch, filename);
 
@@ -160,6 +168,9 @@ function SlimeSeeState* slimeseestate_read_from_file(M_Arena *arena, String8 fil
     if (str8_match(node->string, str8_pushf(scratch, "%d", sizeof(SlimeSeeState)), 0)) {
       node = node->next;
       printf("File %.*s is a valid SlimeSeeState file\n", str8_expand(filename));
+
+      if (!node) { goto error; }
+      state_out->name = str8_push_copy(arena, node->string); node = node->next;
 
       /*
 struct Preset {
@@ -181,88 +192,152 @@ struct Preset {
   float                 blurring;
 };
 */
+      if (!node) { goto error; }
       // Read Primary Preset
-      results->primary_preset.number_of_points = str8_to_u32(node->string); node = node->next;
-      results->primary_preset.starting_arrangement = (StartingArrangement)str8_to_u32(node->string); node = node->next;
-      results->primary_preset.average_starting_speed = str8_to_f32(node->string); node = node->next;
-      results->primary_preset.starting_speed_spread = str8_to_f32(node->string); node = node->next;
-      results->primary_preset.speed_multiplier = str8_to_f32(node->string); node = node->next;
-      results->primary_preset.point_size = str8_to_f32(node->string); node = node->next;
-      results->primary_preset.random_steer_factor = str8_to_f32(node->string); node = node->next;
-      results->primary_preset.constant_steer_factor = str8_to_f32(node->string); node = node->next;
-      results->primary_preset.trail_strength = str8_to_f32(node->string); node = node->next;
-      results->primary_preset.search_radius = str8_to_f32(node->string); node = node->next;
-      results->primary_preset.wall_strategy = (WallStrategy)str8_to_u32(node->string); node = node->next;
-      results->primary_preset.color_strategy = (ColorStrategy)str8_to_u32(node->string); node = node->next;
-      results->primary_preset.fade_speed = str8_to_f32(node->string); node = node->next;
-      results->primary_preset.blurring = str8_to_f32(node->string); node = node->next;
+      state_out->primary_preset.number_of_points = str8_to_u32(node->string); node = node->next;
+      if (!node) { goto error; }
+      state_out->primary_preset.starting_arrangement = (StartingArrangement)str8_to_u32(node->string); node = node->next;
+      if (!node) { goto error; }
+      state_out->primary_preset.average_starting_speed = str8_to_f32(node->string); node = node->next;
+      if (!node) { goto error; }
+      state_out->primary_preset.starting_speed_spread = str8_to_f32(node->string); node = node->next;
+      if (!node) { goto error; }
+      state_out->primary_preset.speed_multiplier = str8_to_f32(node->string); node = node->next;
+      if (!node) { goto error; }
+      state_out->primary_preset.point_size = str8_to_f32(node->string); node = node->next;
+      if (!node) { goto error; }
+      state_out->primary_preset.random_steer_factor = str8_to_f32(node->string); node = node->next;
+      if (!node) { goto error; }
+      state_out->primary_preset.constant_steer_factor = str8_to_f32(node->string); node = node->next;
+      if (!node) { goto error; }
+      state_out->primary_preset.trail_strength = str8_to_f32(node->string); node = node->next;
+      if (!node) { goto error; }
+      state_out->primary_preset.search_radius = str8_to_f32(node->string); node = node->next;
+      if (!node) { goto error; }
+      state_out->primary_preset.wall_strategy = (WallStrategy)str8_to_u32(node->string); node = node->next;
+      if (!node) { goto error; }
+      state_out->primary_preset.color_strategy = (ColorStrategy)str8_to_u32(node->string); node = node->next;
+      if (!node) { goto error; }
+      state_out->primary_preset.fade_speed = str8_to_f32(node->string); node = node->next;
+      if (!node) { goto error; }
+      state_out->primary_preset.blurring = str8_to_f32(node->string); node = node->next;
+      if (!node) { goto error; }
 
       // Read Secondary Preset
-      results->secondary_preset.number_of_points = str8_to_u32(node->string); node = node->next;
-      results->secondary_preset.starting_arrangement = (StartingArrangement)str8_to_u32(node->string); node = node->next;
-      results->secondary_preset.average_starting_speed = str8_to_f32(node->string); node = node->next;
-      results->secondary_preset.starting_speed_spread = str8_to_f32(node->string); node = node->next;
-      results->secondary_preset.speed_multiplier = str8_to_f32(node->string); node = node->next;
-      results->secondary_preset.point_size = str8_to_f32(node->string); node = node->next;
-      results->secondary_preset.random_steer_factor = str8_to_f32(node->string); node = node->next;
-      results->secondary_preset.constant_steer_factor = str8_to_f32(node->string); node = node->next;
-      results->secondary_preset.trail_strength = str8_to_f32(node->string); node = node->next;
-      results->secondary_preset.search_radius = str8_to_f32(node->string); node = node->next;
-      results->secondary_preset.wall_strategy = (WallStrategy)str8_to_u32(node->string); node = node->next;
-      results->secondary_preset.color_strategy = (ColorStrategy)str8_to_u32(node->string); node = node->next;
-      results->secondary_preset.fade_speed = str8_to_f32(node->string); node = node->next;
-      results->secondary_preset.blurring = str8_to_f32(node->string); node = node->next;
+      state_out->secondary_preset.number_of_points = str8_to_u32(node->string); node = node->next;
+      if (!node) { goto error; }
+      state_out->secondary_preset.starting_arrangement = (StartingArrangement)str8_to_u32(node->string); node = node->next;
+      if (!node) { goto error; }
+      state_out->secondary_preset.average_starting_speed = str8_to_f32(node->string); node = node->next;
+      if (!node) { goto error; }
+      state_out->secondary_preset.starting_speed_spread = str8_to_f32(node->string); node = node->next;
+      if (!node) { goto error; }
+      state_out->secondary_preset.speed_multiplier = str8_to_f32(node->string); node = node->next;
+      if (!node) { goto error; }
+      state_out->secondary_preset.point_size = str8_to_f32(node->string); node = node->next;
+      if (!node) { goto error; }
+      state_out->secondary_preset.random_steer_factor = str8_to_f32(node->string); node = node->next;
+      if (!node) { goto error; }
+      state_out->secondary_preset.constant_steer_factor = str8_to_f32(node->string); node = node->next;
+      if (!node) { goto error; }
+      state_out->secondary_preset.trail_strength = str8_to_f32(node->string); node = node->next;
+      if (!node) { goto error; }
+      state_out->secondary_preset.search_radius = str8_to_f32(node->string); node = node->next;
+      if (!node) { goto error; }
+      state_out->secondary_preset.wall_strategy = (WallStrategy)str8_to_u32(node->string); node = node->next;
+      if (!node) { goto error; }
+      state_out->secondary_preset.color_strategy = (ColorStrategy)str8_to_u32(node->string); node = node->next;
+      if (!node) { goto error; }
+      state_out->secondary_preset.fade_speed = str8_to_f32(node->string); node = node->next;
+      if (!node) { goto error; }
+      state_out->secondary_preset.blurring = str8_to_f32(node->string); node = node->next;
+      if (!node) { goto error; }
 
       // Read Beat Preset
-      results->beat_preset.number_of_points = str8_to_u32(node->string); node = node->next;
-      results->beat_preset.starting_arrangement = (StartingArrangement)str8_to_u32(node->string); node = node->next;
-      results->beat_preset.average_starting_speed = str8_to_f32(node->string); node = node->next;
-      results->beat_preset.starting_speed_spread = str8_to_f32(node->string); node = node->next;
-      results->beat_preset.speed_multiplier = str8_to_f32(node->string); node = node->next;
-      results->beat_preset.point_size = str8_to_f32(node->string); node = node->next;
-      results->beat_preset.random_steer_factor = str8_to_f32(node->string); node = node->next;
-      results->beat_preset.constant_steer_factor = str8_to_f32(node->string); node = node->next;
-      results->beat_preset.trail_strength = str8_to_f32(node->string); node = node->next;
-      results->beat_preset.search_radius = str8_to_f32(node->string); node = node->next;
-      results->beat_preset.wall_strategy = (WallStrategy)str8_to_u32(node->string); node = node->next;
-      results->beat_preset.color_strategy = (ColorStrategy)str8_to_u32(node->string); node = node->next;
-      results->beat_preset.fade_speed = str8_to_f32(node->string); node = node->next;
-      results->beat_preset.blurring = str8_to_f32(node->string); node = node->next;
+      state_out->beat_preset.number_of_points = str8_to_u32(node->string); node = node->next;
+      if (!node) { goto error; }
+      state_out->beat_preset.starting_arrangement = (StartingArrangement)str8_to_u32(node->string); node = node->next;
+      if (!node) { goto error; }
+      state_out->beat_preset.average_starting_speed = str8_to_f32(node->string); node = node->next;
+      if (!node) { goto error; }
+      state_out->beat_preset.starting_speed_spread = str8_to_f32(node->string); node = node->next;
+      if (!node) { goto error; }
+      state_out->beat_preset.speed_multiplier = str8_to_f32(node->string); node = node->next;
+      if (!node) { goto error; }
+      state_out->beat_preset.point_size = str8_to_f32(node->string); node = node->next;
+      if (!node) { goto error; }
+      state_out->beat_preset.random_steer_factor = str8_to_f32(node->string); node = node->next;
+      if (!node) { goto error; }
+      state_out->beat_preset.constant_steer_factor = str8_to_f32(node->string); node = node->next;
+      if (!node) { goto error; }
+      state_out->beat_preset.trail_strength = str8_to_f32(node->string); node = node->next;
+      if (!node) { goto error; }
+      state_out->beat_preset.search_radius = str8_to_f32(node->string); node = node->next;
+      if (!node) { goto error; }
+      state_out->beat_preset.wall_strategy = (WallStrategy)str8_to_u32(node->string); node = node->next;
+      if (!node) { goto error; }
+      state_out->beat_preset.color_strategy = (ColorStrategy)str8_to_u32(node->string); node = node->next;
+      if (!node) { goto error; }
+      state_out->beat_preset.fade_speed = str8_to_f32(node->string); node = node->next;
+      if (!node) { goto error; }
+      state_out->beat_preset.blurring = str8_to_f32(node->string); node = node->next;
+      if (!node) { goto error; }
 
       // Read Old Preset
-      results->old_preset.number_of_points = str8_to_u32(node->string); node = node->next;
-      results->old_preset.starting_arrangement = (StartingArrangement)str8_to_u32(node->string); node = node->next;
-      results->old_preset.average_starting_speed = str8_to_f32(node->string); node = node->next;
-      results->old_preset.starting_speed_spread = str8_to_f32(node->string); node = node->next;
-      results->old_preset.speed_multiplier = str8_to_f32(node->string); node = node->next;
-      results->old_preset.point_size = str8_to_f32(node->string); node = node->next;
-      results->old_preset.random_steer_factor = str8_to_f32(node->string); node = node->next;
-      results->old_preset.constant_steer_factor = str8_to_f32(node->string); node = node->next;
-      results->old_preset.trail_strength = str8_to_f32(node->string); node = node->next;
-      results->old_preset.search_radius = str8_to_f32(node->string); node = node->next;
-      results->old_preset.wall_strategy = (WallStrategy)str8_to_u32(node->string); node = node->next;
-      results->old_preset.color_strategy = (ColorStrategy)str8_to_u32(node->string); node = node->next;
-      results->old_preset.fade_speed = str8_to_f32(node->string); node = node->next;
-      results->old_preset.blurring = str8_to_f32(node->string); node = node->next;
+      state_out->old_preset.number_of_points = str8_to_u32(node->string); node = node->next;
+      if (!node) { goto error; }
+      state_out->old_preset.starting_arrangement = (StartingArrangement)str8_to_u32(node->string); node = node->next;
+      if (!node) { goto error; }
+      state_out->old_preset.average_starting_speed = str8_to_f32(node->string); node = node->next;
+      if (!node) { goto error; }
+      state_out->old_preset.starting_speed_spread = str8_to_f32(node->string); node = node->next;
+      if (!node) { goto error; }
+      state_out->old_preset.speed_multiplier = str8_to_f32(node->string); node = node->next;
+      if (!node) { goto error; }
+      state_out->old_preset.point_size = str8_to_f32(node->string); node = node->next;
+      if (!node) { goto error; }
+      state_out->old_preset.random_steer_factor = str8_to_f32(node->string); node = node->next;
+      if (!node) { goto error; }
+      state_out->old_preset.constant_steer_factor = str8_to_f32(node->string); node = node->next;
+      if (!node) { goto error; }
+      state_out->old_preset.trail_strength = str8_to_f32(node->string); node = node->next;
+      if (!node) { goto error; }
+      state_out->old_preset.search_radius = str8_to_f32(node->string); node = node->next;
+      if (!node) { goto error; }
+      state_out->old_preset.wall_strategy = (WallStrategy)str8_to_u32(node->string); node = node->next;
+      if (!node) { goto error; }
+      state_out->old_preset.color_strategy = (ColorStrategy)str8_to_u32(node->string); node = node->next;
+      if (!node) { goto error; }
+      state_out->old_preset.fade_speed = str8_to_f32(node->string); node = node->next;
+      if (!node) { goto error; }
+      state_out->old_preset.blurring = str8_to_f32(node->string); node = node->next;
+      if (!node) { goto error; }
 
       // Read other state values
-      results->blend_value = str8_to_f32(node->string); node = node->next;
-      results->beat_transition_ms = str8_to_f32(node->string); node = node->next;
-      results->beat_transition = str8_to_u32(node->string); node = node->next;
-      results->transition_start = str8_to_f32(node->string); node = node->next;
-      results->transition_length_ms = str8_to_f32(node->string); node = node->next;
-      results->beat_transition_ratio = str8_to_f32(node->string); node = node->next;
-      results->color_swap = str8_to_f32(node->string); node = node->next;
+      state_out->blend_value = str8_to_f32(node->string); node = node->next;
+      if (!node) { goto error; }
+      state_out->beat_transition_ms = str8_to_f32(node->string); node = node->next;
+      if (!node) { goto error; }
+      state_out->beat_transition = str8_to_u32(node->string); node = node->next;
+      if (!node) { goto error; }
+      state_out->transition_start = str8_to_f32(node->string); node = node->next;
+      if (!node) { goto error; }
+      state_out->transition_length_ms = str8_to_f32(node->string); node = node->next;
+      if (!node) { goto error; }
+      state_out->beat_transition_ratio = str8_to_f32(node->string); node = node->next;
+      if (!node) { goto error; }
+      state_out->color_swap = str8_to_f32(node->string);
+      result = true;
+      printf("Successfully loaded SlimeSeeState from %.*s\n", str8_expand(filename));
+
+error: ;
+     
     } else {
       printf("File %.*s is not a valid SlimeSeeState file\n", str8_expand(filename));
-      results = 0;
     }
-  } else {
-    results = 0;
-    m_end_temp(restore_point);
   }
 
-  return results;
+  return result;
 }
 
 function void slimesee_set_preset(SlimeSee *slimesee, PresetSlot slot, Preset new_preset) {

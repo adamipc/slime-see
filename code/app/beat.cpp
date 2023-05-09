@@ -260,7 +260,7 @@ peak_picker_process(PeakPicker *peak_picker, f32 latest_value, u32 frame_index, 
         f32 threshold_to_max = state->max_value - original_threshold;
         f32 above_threshold = latest_value - original_threshold;
         *intensity_out = above_threshold / threshold_to_max;
-        printf("above_threshold: %f, threshold_to_max: %f, intensity: %f\n", above_threshold, threshold_to_max, *intensity_out);
+        //printf("above_threshold: %f, threshold_to_max: %f, intensity: %f\n", above_threshold, threshold_to_max, *intensity_out);
       }
     } break;
     case PeakPickerType_ThresholdDecay: {
