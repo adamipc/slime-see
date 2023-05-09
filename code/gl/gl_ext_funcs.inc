@@ -41,4 +41,5 @@ X(glBindBufferBase, void, (GLenum target, GLuint index, GLuint buffer))
 X(glBeginTransformFeedback, void, (GLenum primitiveMode))
 X(glEndTransformFeedback, void, (void))
 X(glDeleteBuffers, void, (GLsizei n, const GLuint *buffers))
+X(glClearTexImage, void, (GLuint texture, GLint level, GLenum format, GLenum type, const void *data))
 

@@ -54,9 +54,11 @@ generate_initial_positions(M_Arena *arena, Preset *preset) {
 function void
 pipeline_create_target_textures(Pipeline *pipeline, int width, int height) {
   if (pipeline->texture0) {
+    glClearTexImage(pipeline->texture0, 0, GL_RGBA, GL_FLOAT, 0);
     glDeleteTextures(1, &pipeline->texture0);
   }
   if (pipeline->texture1) {
+    glClearTexImage(pipeline->texture1, 0, GL_RGBA, GL_FLOAT, 0);
     glDeleteTextures(1, &pipeline->texture1);
   }
 
