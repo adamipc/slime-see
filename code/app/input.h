@@ -27,6 +27,10 @@ enum {
   InputEvent_COUNT,
 };
 
+struct LoadStateData {
+  String8 state_filename;
+};
+
 struct PresetData {
   PresetSlot preset_slot;
   PresetNames preset_name;
@@ -76,6 +80,7 @@ enum {
 struct GlitchWindowData {
   i8 glitch_value;
   GlitchWindowParam window_param;
+  b32 glitch_reset;
 };
 
 typedef u8 WindowEvents;

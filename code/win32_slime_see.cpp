@@ -406,15 +406,27 @@ WinMain(HINSTANCE Instance,
           switch (data->window_param)
           {
             case GlitchWindowParam_X: {
+              if(data->glitch_reset) {
+                glitchViewportX = 0;
+              }
               glitchViewportX += data->glitch_value;
             } break;
             case GlitchWindowParam_Y: {
+              if(data->glitch_reset) {
+                glitchViewportY = 0;
+              }
               glitchViewportY += data->glitch_value;
             } break;
             case GlitchWindowParam_Width: {
+              if (data->glitch_reset) {
+                glitchWindowWidth = 0;
+              }
               glitchWindowWidth += data->glitch_value;
             } break;
             case GlitchWindowParam_Height: {
+              if (data->glitch_reset) {
+                glitchWindowHeight = 0;
+              }
               glitchWindowHeight += data->glitch_value;
             } break;
           }
@@ -466,6 +478,7 @@ WinMain(HINSTANCE Instance,
         case InputEvent_PanicAtTheDisco: {
           glitchViewportX = glitchViewportY = glitchWindowHeight = glitchWindowWidth = 0;
           slimesee_reset_points(slimesee);
+          slimesee_clear_textures(slimesee);
         } break;
         case InputEvent_ClearTextures: {
           slimesee_clear_textures(slimesee);
@@ -499,9 +512,10 @@ WinMain(HINSTANCE Instance,
           slimeseestate_write_to_file(state, str8_pushf(scratch, "../data/state/slimesee_%03d.state", ++state_count_write));
         } break;
         case InputEvent_LoadState: {
+          LoadStateData *data = (LoadStateData *)node->data;
           SlimeSeeState *state = push_struct(scratch, SlimeSeeState);
           // Loads the last written state
-          if(slimeseestate_read_from_file(scratch, str8_pushf(scratch, "../data/state/slimesee_%03d.state", state_count_write), state)) {
+          if(slimeseestate_read_from_file(scratch, str8_pushf(scratch, "../data/state/%.*s.state", str8_expand(data->state_filename)), state)) {
             slimesee_load_state(slimesee, state);
           }
         } break;
@@ -520,7 +534,8 @@ WinMain(HINSTANCE Instance,
 
     if (beat_intensity > 0.0f) {
       //printf("Beat intensity: %f\n", beat_intensity);
-      slimesee_beat_transition(slimesee, beat_intensity);
+      // NOTE(adam): for debugging just send 1.0
+      slimesee_beat_transition(slimesee, 1.0f);
     }
 
     if (GlobalResizeTriggered) {

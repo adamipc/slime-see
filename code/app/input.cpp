@@ -139,7 +139,8 @@ app_process_input(M_Arena *arena, MidiDeviceHandle *midi_handle, WindowEventList
             case 23: {
               event = InputEvent_UpdateBeatTransitionTime;
               data = push_array(arena, BeatTransitionTimeData, 1);
-              ((BeatTransitionTimeData *)data)->beat_transition_ms = 125.0f * message->value/127.0f;
+              printf("Beat transition time: %f ms\n", 150.0f * message->value/127.0f);
+              ((BeatTransitionTimeData *)data)->beat_transition_ms = 75.0f * message->value/127.0f;
             } break;
             case 12:
             case 13:
@@ -166,6 +167,7 @@ app_process_input(M_Arena *arena, MidiDeviceHandle *midi_handle, WindowEventList
             case 24: {
               event = InputEvent_UpdateBeatTransitionRatio;
               data = push_array(arena, BeatTransitionRatioData, 1);
+              printf("Beat transition ratio: %f\n", message->value/127.0f);
               ((BeatTransitionRatioData *)data)->beat_transition_ratio = message->value/127.0f;
             } break;
             default: {
@@ -178,10 +180,188 @@ app_process_input(M_Arena *arena, MidiDeviceHandle *midi_handle, WindowEventList
           }
         } break;
         case MidiStatus_NoteOn: {
-          data = push_array(arena, PresetData, 1);
           u8 pad = message->note - 36;
-          ((PresetData *)data)->preset_intensity = message->velocity/127.0f;
+          /* Our pad layout is:
+           *
+           * page 1:
+           * 12 13 14 15
+           *  8  9 10 11
+           *  4  5  6  7
+           *  0  1  2  3
+           *
+           * page 2:
+           * 28 29 30 31
+           * 24 25 26 27
+           * 20 21 22 23
+           * 16 17 18 19
+           *
+           * page 3:
+           * 44 45 46 47
+           * 40 41 42 43
+           * 36 37 38 39
+           * 32 33 34 35
+           *
+           * For our set we want the pads on each page to do the same thing, or
+           * almost the same thing so if the page gets changed we don't have to worry
+           * about people getting confused if it doesn't do the same thing as it did
+           * before
+           *
+           * let's have the corners do very different functions while the inner 4 pads
+           * have a similar effect and then the edges do slightly different things
+           */
 
+          data = push_struct(arena, LoadStateData);
+          LoadStateData *load_state_data = (LoadStateData *)data;
+          switch (pad) {
+            case 0:
+            case 16:
+            case 32: {
+              event = InputEvent_LoadState;
+              load_state_data->state_filename = str8_push_copy(arena, str8_lit("color_theory_2"));
+            } break;
+            case 1:
+            case 17:
+            case 33: {
+              event = InputEvent_LoadState;
+              load_state_data->state_filename = str8_push_copy(arena, str8_lit("jellyfish_breaks_1"));
+            } break;
+            case 2:
+            case 18:
+            case 34: {
+              event = InputEvent_LoadState;
+              load_state_data->state_filename = str8_push_copy(arena, str8_lit("panache_1"));
+            } break;
+            case 3:
+            case 19:
+            case 35: {
+              event = InputEvent_LoadState;
+              load_state_data->state_filename = str8_push_copy(arena, str8_lit("watercolours_1"));
+            } break;
+            case 4:
+            case 20:
+            case 36: {
+              event = InputEvent_LoadState;
+              load_state_data->state_filename = str8_push_copy(arena, str8_lit("lava_lamp_1"));
+            } break;
+            case 5:
+            case 21:
+            case 37: {
+              event = InputEvent_LoadState;
+              load_state_data->state_filename = str8_push_copy(arena, str8_lit("ahha_1"));
+            } break;
+            case 6:
+            case 22:
+            case 38: {
+              event = InputEvent_LoadState;
+              load_state_data->state_filename = str8_push_copy(arena, str8_lit("pretty_lights_1"));
+            } break;
+            case 7:
+            case 23:
+            case 39: {
+              event = InputEvent_LoadState;
+              load_state_data->state_filename = str8_push_copy(arena, str8_lit("burning_chrome_1"));
+            } break;
+            case 8:
+            case 24:
+            case 40: {
+              event = InputEvent_LoadState;
+              load_state_data->state_filename = str8_push_copy(arena, str8_lit("shizzle_1"));
+            } break;
+            case 9:
+            case 25:
+            case 41: {
+              event = InputEvent_LoadState;
+              load_state_data->state_filename = str8_push_copy(arena, str8_lit("slimesee_013"));
+            } break;
+            case 10:
+            case 26:
+            case 42: {
+              event = InputEvent_LoadState;
+              load_state_data->state_filename = str8_push_copy(arena, str8_lit("warm_fire_1"));
+            } break;
+            case 11:
+            case 27:
+            case 43: {
+              event = InputEvent_LoadState;
+              load_state_data->state_filename = str8_push_copy(arena, str8_lit("particle_accelerator_1"));
+            } break;
+            case 12:
+            case 28:
+            case 44: {
+              event = InputEvent_RandomizePreset;
+              data = push_struct(arena, PresetData);
+              ((PresetData *)data)->preset_slot = PresetSlot_Primary;
+              ((PresetData *)data)->preset_intensity = message->velocity/127.0f;
+              inputevent_list_push(arena, &result, event, data);
+              data = push_struct(arena, PresetData);
+              ((PresetData *)data)->preset_slot = PresetSlot_Secondary;
+              ((PresetData *)data)->preset_intensity = message->velocity/127.0f;
+              inputevent_list_push(arena, &result, event, data);
+              data = push_struct(arena, PresetData);
+              ((PresetData *)data)->preset_slot = PresetSlot_Beat;
+              ((PresetData *)data)->preset_intensity = message->velocity/127.0f;
+              // bottom of the loop will push this event
+            } break;
+                     // Yes
+            case 13:
+            case 29:
+            case 45: {
+              event = InputEvent_UpdateWindowGlitch;
+              data = push_array(arena, GlitchWindowData, 1);
+              ((GlitchWindowData *)data)->window_param = GlitchWindowParam_X;
+              ((GlitchWindowData *)data)->glitch_value = (i8)(rand()/((float)RAND_MAX) * 20 - 10);
+              ((GlitchWindowData *)data)->glitch_reset = false;
+              inputevent_list_push(arena, &result, event, data);
+              data = push_array(arena, GlitchWindowData, 1);
+              ((GlitchWindowData *)data)->window_param = GlitchWindowParam_Y;
+              ((GlitchWindowData *)data)->glitch_value = (i8)(rand()/((float)RAND_MAX) * 20 - 10);
+              ((GlitchWindowData *)data)->glitch_reset = false;
+              inputevent_list_push(arena, &result, event, data);
+              data = push_array(arena, GlitchWindowData, 1);
+              ((GlitchWindowData *)data)->window_param = GlitchWindowParam_Width;
+              ((GlitchWindowData *)data)->glitch_value = (i8)(rand()/((float)RAND_MAX) * 20 - 10);
+              ((GlitchWindowData *)data)->glitch_reset = false;
+              inputevent_list_push(arena, &result, event, data);
+              data = push_array(arena, GlitchWindowData, 1);
+              ((GlitchWindowData *)data)->window_param = GlitchWindowParam_Height;
+              ((GlitchWindowData *)data)->glitch_value = (i8)(rand()/((float)RAND_MAX) * 20 - 10);
+              ((GlitchWindowData *)data)->glitch_reset = false;
+            } break;
+                     // No
+            case 14:
+            case 30:
+            case 46: {
+              event = InputEvent_UpdateWindowGlitch;
+              data = push_array(arena, GlitchWindowData, 1);
+              ((GlitchWindowData *)data)->window_param = GlitchWindowParam_X;
+              ((GlitchWindowData *)data)->glitch_value = 0;
+              ((GlitchWindowData *)data)->glitch_reset = true;
+              inputevent_list_push(arena, &result, event, data);
+              data = push_array(arena, GlitchWindowData, 1);
+              ((GlitchWindowData *)data)->window_param = GlitchWindowParam_Y;
+              ((GlitchWindowData *)data)->glitch_value = 0;
+              ((GlitchWindowData *)data)->glitch_reset = true;
+              inputevent_list_push(arena, &result, event, data);
+              data = push_array(arena, GlitchWindowData, 1);
+              ((GlitchWindowData *)data)->window_param = GlitchWindowParam_Width;
+              ((GlitchWindowData *)data)->glitch_value = 0;
+              ((GlitchWindowData *)data)->glitch_reset = true;
+              inputevent_list_push(arena, &result, event, data);
+              data = push_array(arena, GlitchWindowData, 1);
+              ((GlitchWindowData *)data)->window_param = GlitchWindowParam_Height;
+              ((GlitchWindowData *)data)->glitch_value = 0;
+              ((GlitchWindowData *)data)->glitch_reset = true;
+            } break;
+            case 15:
+            case 31:
+            case 47: {
+              event = InputEvent_PanicAtTheDisco;
+            } break;
+          }
+
+          /* Old code
+          data = push_array(arena, PresetData, 1);
+          ((PresetData *)data)->preset_intensity = message->velocity/127.0f;
           if (pad <= 9) {
             event = InputEvent_LoadPreset;
             ((PresetData *)data)->preset_slot = PresetSlot_Primary;
@@ -222,6 +402,7 @@ app_process_input(M_Arena *arena, MidiDeviceHandle *midi_handle, WindowEventList
               } break;
             }
           }
+          */
 
           if (event != InputEvent_None) {
             inputevent_list_push(arena, &result, event, data);
