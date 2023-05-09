@@ -53,14 +53,8 @@ generate_initial_positions(M_Arena *arena, Preset *preset) {
 
 function void
 pipeline_create_target_textures(Pipeline *pipeline, int width, int height) {
-  if (pipeline->texture0) {
-    glClearTexImage(pipeline->texture0, 0, GL_RGBA, GL_FLOAT, 0);
-    glDeleteTextures(1, &pipeline->texture0);
-  }
-  if (pipeline->texture1) {
-    glClearTexImage(pipeline->texture1, 0, GL_RGBA, GL_FLOAT, 0);
-    glDeleteTextures(1, &pipeline->texture1);
-  }
+  GLuint old_texture0 = pipeline->texture0;
+  GLuint old_texture1 = pipeline->texture1;
 
   // A texture for storing the output of shader1
   glGenTextures(1, &pipeline->texture0);
@@ -81,6 +75,16 @@ pipeline_create_target_textures(Pipeline *pipeline, int width, int height) {
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);   // GL_LINEAR
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);   // GL_LINEAR
   glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+
+  // Do this afterwards so glGenTextures doesn't give us back the same texture
+  if (old_texture0) {
+    glClearTexImage(old_texture0, 0, GL_RGBA, GL_FLOAT, 0);
+    glDeleteTextures(1, &old_texture0);
+  }
+  if (old_texture1) {
+    glClearTexImage(old_texture1, 0, GL_RGBA, GL_FLOAT, 0);
+    glDeleteTextures(1, &old_texture1);
+  }
 }
 
 function void
