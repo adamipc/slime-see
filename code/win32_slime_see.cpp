@@ -214,19 +214,17 @@ ToggleFullscreen(HWND window, bool is_fullscreen) {
     GlobalWindowWidth = client_rect.right - client_rect.left;
     GlobalWindowHeight = client_rect.bottom - client_rect.top;
   } else {
+    HMONITOR primary_monitor = MonitorFromWindow(window, MONITOR_DEFAULTTOPRIMARY);
     HMONITOR monitor = MonitorFromWindow(window, MONITOR_DEFAULTTONEAREST);
     MONITORINFOEX info = {};
     info.cbSize = sizeof(MONITORINFOEX);
     GetMonitorInfo(monitor, &info);
-    int FullscreenWidth = info.rcMonitor.right - info.rcMonitor.left;
-    int FullscreenHeight = info.rcMonitor.bottom - info.rcMonitor.top;
-    int x_offset = 0;
-    int y_offset = 0;
 
-    RECT window_rect = {x_offset, y_offset, (LONG)x_offset + FullscreenWidth, (LONG)y_offset+FullscreenHeight};
+    RECT window_rect = {info.rcMonitor.left, info.rcMonitor.top, info.rcMonitor.right, info.rcMonitor.bottom};
     SetWindowLongPtr(window, GWL_STYLE, WS_SYSMENU | WS_POPUP | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | WS_VISIBLE);
     AdjustWindowRect(&window_rect, WS_POPUP, FALSE);
-    SetWindowPos(window, HWND_TOP, x_offset, y_offset, x_offset+FullscreenWidth, y_offset+FullscreenHeight, SWP_FRAMECHANGED);
+    SetWindowPos(window, HWND_TOP, window_rect.left, window_rect.top, window_rect.right - window_rect.left,
+        window_rect.bottom - window_rect.top, SWP_FRAMECHANGED);
     RECT client_rect = {};
     GetClientRect(window, &client_rect);
     GlobalWindowWidth = (client_rect.right - client_rect.left);
