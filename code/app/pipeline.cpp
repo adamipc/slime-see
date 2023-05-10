@@ -1,51 +1,163 @@
 #include "app/pipeline.h"
 #include "app/preset.h"
 
+struct image_data {
+  u32 	 width;
+  u32 	 height;
+  u32 	 bytes_per_pixel; /* 2:RGB16, 3:RGB, 4:RGBA */ 
+  u8  	 pixel_data[3];
+};
+
+#ifdef LOGOS
+#define STUDIO143_LOGO 1
+#include "logos/studio143.c"
+#define BRONSON_LOGO 1
+#include "logos/bronson.c"
+#endif
+
+typedef u8 Logos;
+enum {
+#ifdef STUDIO143_LOGO
+  Logo_Studio143,
+#endif
+#ifdef BRONSON_LOGO
+  Logo_Bronson,
+#endif
+
+  Logo_COUNT,
+};
+
 function f32*
 generate_initial_positions(M_Arena *arena, Preset *preset) {
+    f32 *result = 0;
     f32 speed_randomness = preset->starting_speed_spread;
     f32 initial_speed = preset->average_starting_speed;
-    u64 n = preset->number_of_points;
-    f32 *result = push_array(arena, f32, n*4);
-    //printf("Starting arrangement: %d\n", preset->starting_arrangement);
-    for (u64 i = 0; i < n; ++i) {
-      f32 pi_times_2_over_n = pi_f32*2.0f/((f32)n);
-      f32 frac_pi_2 = pi_f32/2.0f;
-      f32 angle = (f32)i * pi_times_2_over_n;
-      f32 distance = 0.7f; // distance to center
-      f32 x = 0.f;
-      f32 y = 0.f;
-      f32 direction = 1.f;
-      f32 speed = (rand()/(f32)RAND_MAX*0.01f*speed_randomness + 0.01f * initial_speed)/1000.f; 
-      switch (preset->starting_arrangement) {
-        case StartingArrangement_Ring: {
-          x = (f32)sin(angle)*distance;
-          y = -(f32)cos(angle)*distance;
-          direction = 1.0f + (angle+frac_pi_2) /1000.f;
-        } break;
-        case StartingArrangement_Random: {
-          // x and y between -1.0 and 1.0, direction between 0.0 and 1.0
-          x = rand()/(f32)RAND_MAX*2.0f - 1.0f;
-          y = rand()/(f32)RAND_MAX*2.0f - 1.0f;
-          direction = rand()/(f32)RAND_MAX;
-        } break;
-         case StartingArrangement_Origin: {
-           x = 0.0f;
-           y = 0.0f;
-           direction = 1.0f + (angle+frac_pi_2) /1000.f;
-        } break;
-        default: {
-          printf("Unknown starting arrangement: %d\n", preset->starting_arrangement);
-        } break;
-      }
-      // print a sample
-      //if (i % 1000 == 0) {
-        //printf("%f %f %f %f\n", x, y, speed, direction);
-      //}
-      result[i*4 + 0] = x;
-      result[i*4 + 1] = y;
-      result[i*4 + 2] = speed;
-      result[i*4 + 3] = direction;
+    f32 frac_pi_2 = pi_f32/2.0f;
+    switch(preset->starting_arrangement) {
+      case StartingArrangement_Logo: {
+        Logos logo = (Logos)random_range(0, Logo_COUNT);
+        
+        // We can use this to increase the density of the simulated pixels
+        u32 points_per_pixel = 8;
+
+        image_data *data = 0;
+        switch(logo) {
+#ifdef BRONSON_LOGO
+          case Logo_Bronson: {
+            data = (image_data *)&bronson_logo;
+          } break;
+#endif
+#ifdef STUDIO143_LOGO
+          case Logo_Studio143: {
+            data = (image_data *)&studio143_logo;
+          } break;
+#endif
+          case Logo_COUNT: {
+            points_per_pixel = 512;
+            image_data img = {};
+            img.width = 1;
+            img.height = 1;
+            img.bytes_per_pixel = 1;
+            img.pixel_data[0] = 255;
+            img.pixel_data[1] = 255;
+            img.pixel_data[2] = 255;
+            data = &img;
+          } break;
+        }
+
+        // This is the maximum number of points we could have from our image
+        u32 max_points = data->width * data->height * points_per_pixel;
+        u32 pixels = data->width * data->height * data->bytes_per_pixel;
+
+        result = push_array(arena, f32, max_points*4);
+        u32 position_index = 0;
+
+        f32 screen_ratio = GlobalWindowWidth/(f32)GlobalWindowHeight;
+        printf("Screen ratio: %f\n", screen_ratio);
+
+        f32 pi_times_2_over_n = pi_f32*2.0f/(f32)max_points;
+        for(u32 pixel_index = 0;
+            pixel_index < pixels;
+            pixel_index += data->bytes_per_pixel) {
+          if (data->pixel_data[pixel_index] == 0 && data->pixel_data[pixel_index + 1] == 0 && data->pixel_data[pixel_index + 2] == 0) {
+            continue;
+          }
+          
+          f32 x;
+          f32 y;
+
+          if (max_points == points_per_pixel) {
+            x = 0.0f;
+            y = 0.0f;
+          } else {
+            x = (f32)((pixel_index / data->bytes_per_pixel) % data->width) / (f32)data->width * 2.0f - 1.0f;
+            y = (f32)((pixel_index / data->bytes_per_pixel) / data->width) / (f32)data->height * -2.0f + 1.0f;
+          }
+          
+          // Scale by screen ratio
+          if (screen_ratio > 1.0f) {
+            x /= screen_ratio;
+          } else {
+            y *= screen_ratio;
+          }
+
+          for (u32 i = 0; i < points_per_pixel; i++) {
+            f32 angle = (f32)position_index/4 * pi_times_2_over_n;
+            f32 direction = 1.0f + (angle+frac_pi_2) /1000.f;
+            f32 speed = (rand()/(f32)RAND_MAX*0.01f*speed_randomness + 0.01f * initial_speed)/1000.f; 
+            speed *= 0.2f;
+            result[position_index++] = x;
+            result[position_index++] = y;
+            result[position_index++] = speed;
+            result[position_index++] = direction;
+          }
+        }
+
+        preset->number_of_points = position_index/4;
+      } break;
+      default: {
+        u64 n = preset->number_of_points;
+        result = push_array(arena, f32, n*4);
+        f32 pi_times_2_over_n = pi_f32*2.0f/((f32)n);
+        //printf("Starting arrangement: %d\n", preset->starting_arrangement);
+        for (u64 i = 0; i < n; ++i) {
+          f32 angle = (f32)i * pi_times_2_over_n;
+          f32 distance = 0.7f; // distance to center
+          f32 x = 0.f;
+          f32 y = 0.f;
+          f32 direction = 1.f;
+          f32 speed = (rand()/(f32)RAND_MAX*0.01f*speed_randomness + 0.01f * initial_speed)/1000.f; 
+          switch (preset->starting_arrangement) {
+            case StartingArrangement_Ring: {
+              x = (f32)sin(angle)*distance;
+              y = -(f32)cos(angle)*distance;
+              direction = 1.0f + (angle+frac_pi_2) /1000.f;
+            } break;
+            case StartingArrangement_Random: {
+              // x and y between -1.0 and 1.0, direction between 0.0 and 1.0
+              x = rand()/(f32)RAND_MAX*2.0f - 1.0f;
+              y = rand()/(f32)RAND_MAX*2.0f - 1.0f;
+              direction = rand()/(f32)RAND_MAX;
+            } break;
+             case StartingArrangement_Origin: {
+               x = 0.0f;
+               y = 0.0f;
+               direction = 1.0f + (angle+frac_pi_2) /1000.f;
+            } break;
+            default: {
+              printf("Unknown starting arrangement: %d\n", preset->starting_arrangement);
+            } break;
+          }
+          // print a sample
+          //if (i % 1000 == 0) {
+            //printf("%f %f %f %f\n", x, y, speed, direction);
+          //}
+          result[i*4 + 0] = x;
+          result[i*4 + 1] = y;
+          result[i*4 + 2] = speed;
+          result[i*4 + 3] = direction;
+        } 
+      } break;
     }
 
     return result;

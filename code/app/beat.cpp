@@ -188,7 +188,7 @@ onset_detection_spectral_flux(M_Arena *arena, SpectralFluxState *state, complex3
 function b32 peak_picker_threshold(PeakPickerState_Threshold *state, f32 latest_value) {
   b32 result = false;
   if (latest_value > state->threshold) {
-    printf("%0.4f %0.4f\n", latest_value, state->threshold);
+    //printf("%0.4f %0.4f\n", latest_value, state->threshold);
     result = true;
   }
   return result;
@@ -200,6 +200,8 @@ function b32 peak_picker_threshold_decay_delay(PeakPickerState_ThresholdDecayDel
   u32 samples_since_last_peak = sample_index - state->last_peak_sample_index; 
   f32 ms_since_last_peak = (f32)samples_since_last_peak / (f32)sample_rate * 1000.f;
 
+  // print threshold, min threshold, decay factor and delay ms
+  //printf("%0.4f %0.4f %0.4f %0.4f\n", state->threshold, state->min_threshold, state->decay_factor, state->delay_ms);
   if (ms_since_last_peak >= state->delay_ms) {
     //printf("last_peak_sample_index: %u, sample_index: %u, samples_since_last_peak: %u, ms_since_last_peak: %0.4f\n", state->last_peak_sample_index, sample_index, samples_since_last_peak, ms_since_last_peak);
     //printf("latest_value: %0.4f, threshold: %0.4f\n", latest_value, state->threshold);

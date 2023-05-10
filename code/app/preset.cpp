@@ -2,6 +2,12 @@
 
 function u32
 random_range(u32 min, u32 max) {
+  if (min == max) return min;
+  if (min > max) {
+    u32 temp = min;
+    min = max;
+    max = temp;
+  }
   u32 result = min + (rand() % (max - min));
   return result;
 }
@@ -35,6 +41,7 @@ randomize_preset() {
 
   result.number_of_points = power_of_two(random_range(12, 21)); // 2048 - 2097152
   result.starting_arrangement = (StartingArrangement)random_range(0, StartingArrangement_COUNT);
+
   result.average_starting_speed = random_range(0, 100) / 100.0f; // 0.0 - 1.0
   result.starting_speed_spread = random_range(0, 100) / 100.0f;  // 0.0 - 1.0
 

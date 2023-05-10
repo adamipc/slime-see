@@ -26,6 +26,9 @@
 
 #include "audio/fft.cpp"
 
+global i32 GlobalWindowWidth = 1280;
+global i32 GlobalWindowHeight = 720;
+
 #include "app/preset.cpp"
 #include "app/pipeline.cpp"
 #include "app/slimesee.cpp"
@@ -35,8 +38,6 @@
 global bool GlobalRunning = false;
 global i32 WINDOW_WIDTH = 1280;
 global i32 WINDOW_HEIGHT = 720;
-global i32 GlobalWindowWidth = 1280;
-global i32 GlobalWindowHeight = 720;
 global b32 GlobalResizeTriggered = false;
 global i32 glitchViewportX = 0;
 global i32 glitchViewportY = 0;
@@ -519,6 +520,34 @@ WinMain(HINSTANCE Instance,
             slimesee_load_state(slimesee, state);
           }
         } break;
+        // All change values of the below 4 events are relative
+        case InputEvent_DEBUGUpdatePeakPickerThreshold: {
+          PeakPickerThresholdData *data = (PeakPickerThresholdData *)node->data;
+          PeakPickerState_ThresholdDecayDelay *state = (PeakPickerState_ThresholdDecayDelay*)detector->peak_picker->state;
+          state->threshold += data->threshold_change;
+        } break;
+        case InputEvent_DEBUGUpdatePeakPickerMinThreshold: {
+          PeakPickerThresholdData *data = (PeakPickerThresholdData *)node->data;
+          PeakPickerState_ThresholdDecayDelay *state = (PeakPickerState_ThresholdDecayDelay*)detector->peak_picker->state;
+          state->min_threshold += data->threshold_change;
+        } break;
+        case InputEvent_DEBUGUpdatePeakPickerDecayFactor: {
+          PeakPickerDecayFactorData *data = (PeakPickerDecayFactorData *)node->data;
+          PeakPickerState_ThresholdDecayDelay *state = (PeakPickerState_ThresholdDecayDelay*)detector->peak_picker->state;
+          state->decay_factor += data->decay_factor_change;
+        } break;
+        case InputEvent_DEBUGUpdatePeakPickerDelayMS: {
+          PeakPickerDelayMSData *data = (PeakPickerDelayMSData *)node->data;
+          PeakPickerState_ThresholdDecayDelay *state = (PeakPickerState_ThresholdDecayDelay*)detector->peak_picker->state;
+          state->delay_ms += data->delay_ms_change;
+        } break;
+        case InputEvent_DEBUGPeakPickerReset: {
+          PeakPickerState_ThresholdDecayDelay *state = (PeakPickerState_ThresholdDecayDelay*)detector->peak_picker->state;
+          state->threshold = 150.f;
+          state->min_threshold = 20.f;
+          state->decay_factor = 0.992f;
+          state->delay_ms = 300.f;
+        } break;
         default: {
           printf("Unhandled event: %02x\n", node->event);
         } break;
@@ -550,7 +579,7 @@ WinMain(HINSTANCE Instance,
     HDC dc = GetDC(window.window);
     win32_wglMakeCurrent(dc, window.glrc);
 
-    glViewport(glitchViewportX, glitchViewportY, GlobalWindowWidth+glitchWindowWidth, GlobalWindowHeight+glitchWindowHeight);
+    glViewport(glitchViewportX, glitchViewportY, ClampBottom(0, GlobalWindowWidth+glitchWindowWidth), ClampBottom(0, GlobalWindowHeight+glitchWindowHeight));
 
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);

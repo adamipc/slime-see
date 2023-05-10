@@ -116,6 +116,7 @@ app_process_input(M_Arena *arena, MidiDeviceHandle *midi_handle, WindowEventList
     while ((message = os_media_midi_read(arena, midi_handle)) != 0) {
       InputEvents event = InputEvent_None;
       void *data = 0;
+      //printf("Debug byte1: %02x, byte2: %02x\n", message->byte1, message->byte2);
       switch (message->status) {
         case MidiStatus_ProgramChange: {
           //printf("Program change: %d\n", message->program);
@@ -127,9 +128,36 @@ app_process_input(M_Arena *arena, MidiDeviceHandle *midi_handle, WindowEventList
         } break;
         case MidiStatus_ControlChange: {
           //printf("Control change: %d %d\n", message->controller, message->value);
-          //printf("Debug byte1: %02x, byte2: %02x\n", message->byte1, message->byte2);
+          // The top 2 knobs on each page send absolute values from 0 to 127
+          // The bottom 4 all send inc/dec values from -64 to 63 (or maybe -63 to 64)
+          // or maybe even -64 to -1 and 1 to 64 since they wouldn't send 0
+          // in most pratical cases its usually going to be -1 or 1 but if you turn
+          // the knob fast enough you'll get larger absolute values
+          //
+          // Knobs have the controller value:
+          // Page 1:
+          //  3  9
+          // 12 13
+          // 14 15
+          // Page 2:
+          // 16 17
+          // 18 19
+          // 20 21
+          // Page 3:
+          // 22 23
+          // 24 25
+          // 26 27
+          //
+          // Debug knobs:
+          // Page 1:
+          // 28 29
+          // 30 31
+          // 32 33
+          //
           switch (message->controller) {
-            case 3: {
+            case 3:
+            case 16:
+            case 22: {
               event = InputEvent_UpdateBlendValue;
               data = push_array(arena, BlendValueData, 1);
               ((BlendValueData *)data)->blend_value = message->value/127.0f;
@@ -137,39 +165,70 @@ app_process_input(M_Arena *arena, MidiDeviceHandle *midi_handle, WindowEventList
             case 9:
             case 17:
             case 23: {
+              event = InputEvent_UpdateColorSwap;
+              data = push_array(arena, ColorSwapData, 1);
+              ((ColorSwapData *)data)->color_swap = message->value/127.0f;
+            } break;
+            case 12:
+            case 13:
+            case 14:
+            case 15:
+            case 18:
+            case 19:
+            case 20:
+            case 21:
+            case 24:
+            case 25:
+            case 26:
+            case 27: {
+              event = InputEvent_UpdateWindowGlitch;
+              data = push_array(arena, GlitchWindowData, 1);
+              u32 window_param = (message->controller - 12) % 4;
+              ((GlitchWindowData*)data)->window_param = (GlitchWindowParam)window_param;
+              ((GlitchWindowData *)data)->glitch_value = (message->value < 64) ? (message->value) : (message->value - 128);
+              ((GlitchWindowData *)data)->glitch_reset = false;
+
+            } break;
+            case 28: {
               event = InputEvent_UpdateBeatTransitionTime;
               data = push_array(arena, BeatTransitionTimeData, 1);
               printf("Beat transition time: %f ms\n", 150.0f * message->value/127.0f);
               ((BeatTransitionTimeData *)data)->beat_transition_ms = 75.0f * message->value/127.0f;
             } break;
-            case 12:
-            case 13:
-            case 14:
-            case 15: {
-              event = InputEvent_UpdateWindowGlitch;
-              data = push_array(arena, GlitchWindowData, 1);
-              ((GlitchWindowData *)data)->window_param = (GlitchWindowParam)(message->controller - 12);
-              // Our controller sends values from 0 to 127, but we want to map it to -64 to 64
-              // We want to map 0 to 0, 127 through 64 to -1 through -64 and 1 through 63 to 1 through 63
-
-              ((GlitchWindowData *)data)->glitch_value = (message->value < 64) ? (message->value) : (message->value - 128);
-            } break;
-            case 16: {
-              event = InputEvent_UpdateColorSwap;
-              data = push_array(arena, ColorSwapData, 1);
-              ((ColorSwapData *)data)->color_swap = message->value/127.0f;
-            } break;
-            case 22: {
-              event = InputEvent_UpdateBeatSensitivity;
-              data = push_array(arena, BeatSensitivityData, 1);
-              ((BeatSensitivityData *)data)->beat_sensitivity = message->value/127.0f;
-            } break;
-            case 24: {
+            case 29: {
               event = InputEvent_UpdateBeatTransitionRatio;
               data = push_array(arena, BeatTransitionRatioData, 1);
               printf("Beat transition ratio: %f\n", message->value/127.0f);
               ((BeatTransitionRatioData *)data)->beat_transition_ratio = message->value/127.0f;
             } break;
+            case 30: {
+              // TODO(adam): Some other useful debug function!
+            } break;
+            case 31: {
+              event = InputEvent_DEBUGUpdatePeakPickerMinThreshold;
+              data = push_struct(arena, PeakPickerThresholdData);
+              // send relative changes
+              ((PeakPickerThresholdData *)data)->threshold_change = 1.0f * (message->value < 64 ? message->value : message->value - 128);
+            } break;
+            case 32: {
+              event = InputEvent_DEBUGUpdatePeakPickerDecayFactor;
+              data = push_struct(arena, PeakPickerDecayFactorData);
+              // send relative changes
+              ((PeakPickerDecayFactorData *)data)->decay_factor_change = 0.00001f * (message->value < 64 ? message->value : message->value - 128);
+            } break;
+            case 33: {
+              event = InputEvent_DEBUGUpdatePeakPickerDelayMS;
+              data = push_struct(arena, PeakPickerDelayMSData);
+              // send relative changes
+              ((PeakPickerDelayMSData *)data)->delay_ms_change = 1.f * (message->value < 64 ? message->value : message->value - 128);
+            } break;
+            /*
+            case 29: {
+              event = InputEvent_UpdateBeatSensitivity;
+              data = push_array(arena, BeatSensitivityData, 1);
+              ((BeatSensitivityData *)data)->beat_sensitivity = message->value/127.0f;
+            } break;
+            */
             default: {
               printf("Controller %d: %d\n", message->controller, message->value);
             } break;
@@ -181,6 +240,7 @@ app_process_input(M_Arena *arena, MidiDeviceHandle *midi_handle, WindowEventList
         } break;
         case MidiStatus_NoteOn: {
           u8 pad = message->note - 36;
+
           /* Our pad layout is:
            *
            * page 1:
@@ -200,6 +260,13 @@ app_process_input(M_Arena *arena, MidiDeviceHandle *midi_handle, WindowEventList
            * 40 41 42 43
            * 36 37 38 39
            * 32 33 34 35
+           *
+           * Debug pads:
+           * page 1:
+           * 60 61 62 63
+           * 56 57 58 59
+           * 52 53 54 55
+           * 48 49 50 51
            *
            * For our set we want the pads on each page to do the same thing, or
            * almost the same thing so if the page gets changed we don't have to worry
@@ -357,6 +424,33 @@ app_process_input(M_Arena *arena, MidiDeviceHandle *midi_handle, WindowEventList
             case 47: {
               event = InputEvent_PanicAtTheDisco;
             } break;
+            // Debug pads:
+            case 48: {
+              // Reset peak picker debug changes
+              event = InputEvent_DEBUGPeakPickerReset;
+            } break;
+            case 49: {
+              // Reset peak picker debug changes
+              event = InputEvent_DEBUGLoadStudio143Logo;
+            } break;
+          }
+
+          if (event != InputEvent_None) {
+            inputevent_list_push(arena, &result, event, data);
+          }
+
+          // If on page 2 or 3, randomize color swap and blend values for every pad
+          // We have to send this after the pad event as it might overwrite this change
+          u32 page = (pad / 16) + 1;
+          if (page >= 2 && page <= 3) {
+            event = InputEvent_UpdateColorSwap;
+            data = push_array(arena, ColorSwapData, 1);
+            ((ColorSwapData *)data)->color_swap = rand()/((float)RAND_MAX);
+            inputevent_list_push(arena, &result, event, data);
+            event = InputEvent_UpdateBlendValue;
+            data = push_array(arena, BlendValueData, 1);
+            ((BlendValueData *)data)->blend_value = rand()/((float)RAND_MAX);
+            inputevent_list_push(arena, &result, event, data);
           }
 
           /* Old code
@@ -403,10 +497,6 @@ app_process_input(M_Arena *arena, MidiDeviceHandle *midi_handle, WindowEventList
             }
           }
           */
-
-          if (event != InputEvent_None) {
-            inputevent_list_push(arena, &result, event, data);
-          }
         } break;
         case MidiStatus_ChannelPressure: {
           // Ignore for now

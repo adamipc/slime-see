@@ -6,6 +6,7 @@ enum{
   StartingArrangement_Ring,
   StartingArrangement_Random,
   StartingArrangement_Origin,
+  StartingArrangement_Logo,
   StartingArrangement_COUNT,
 };
 

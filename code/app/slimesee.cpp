@@ -168,31 +168,11 @@ slimeseestate_read_from_file(M_Arena *arena, String8 filename, SlimeSeeState *st
     if (str8_match(node->string, str8_pushf(scratch, "%d", sizeof(SlimeSeeState)), 0)) {
       node = node->next;
       printf("File %.*s is a valid SlimeSeeState file\n", str8_expand(filename));
-
       if (!node) { goto error; }
+
       state_out->name = str8_push_copy(arena, node->string); node = node->next;
-
-      /*
-struct Preset {
-  u32                   number_of_points;
-  StartingArrangement   starting_arrangement;
-  float                 average_starting_speed;
-  float                 starting_speed_spread;
-
-  float                 speed_multiplier;
-  float                 point_size;
-  float                 random_steer_factor;
-  float                 constant_steer_factor;
-  float                 trail_strength;
-  float                 search_radius;
-  WallStrategy          wall_strategy;
-  ColorStrategy         color_strategy;
-
-  float                 fade_speed;
-  float                 blurring;
-};
-*/
       if (!node) { goto error; }
+
       // Read Primary Preset
       state_out->primary_preset.number_of_points = str8_to_u32(node->string); node = node->next;
       if (!node) { goto error; }

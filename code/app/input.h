@@ -24,6 +24,13 @@ enum {
   InputEvent_UpdateBeatTransitionRatio,
   InputEvent_UpdateColorSwap,
 
+  InputEvent_DEBUGUpdatePeakPickerThreshold,
+  InputEvent_DEBUGUpdatePeakPickerMinThreshold,
+  InputEvent_DEBUGUpdatePeakPickerDecayFactor,
+  InputEvent_DEBUGUpdatePeakPickerDelayMS,
+  InputEvent_DEBUGPeakPickerReset,
+  InputEvent_DEBUGLoadStudio143Logo,
+
   InputEvent_COUNT,
 };
 
@@ -81,6 +88,18 @@ struct GlitchWindowData {
   i8 glitch_value;
   GlitchWindowParam window_param;
   b32 glitch_reset;
+};
+
+struct PeakPickerThresholdData {
+  f32 threshold_change;
+};
+
+struct PeakPickerDecayFactorData {
+  f32 decay_factor_change;
+};
+
+struct PeakPickerDelayMSData {
+  f32 delay_ms_change;
 };
 
 typedef u8 WindowEvents;
