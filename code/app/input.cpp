@@ -430,8 +430,8 @@ app_process_input(M_Arena *arena, MidiDeviceHandle *midi_handle, WindowEventList
               event = InputEvent_DEBUGPeakPickerReset;
             } break;
             case 49: {
-              // Reset peak picker debug changes
-              event = InputEvent_DEBUGLoadStudio143Logo;
+              event = InputEvent_LoadState;
+              load_state_data->state_filename = str8_push_copy(arena, str8_lit("logos_1"));
             } break;
           }
 

@@ -11,6 +11,8 @@ struct image_data {
 #ifdef LOGOS
 #define STUDIO143_LOGO 1
 #include "logos/studio143.c"
+#define THELSDJ_LOGO 1
+#include "logos/thelsdj.c"
 #define BRONSON_LOGO 1
 #include "logos/bronson.c"
 #endif
@@ -19,6 +21,9 @@ typedef u8 Logos;
 enum {
 #ifdef STUDIO143_LOGO
   Logo_Studio143,
+#endif
+#ifdef THELSDJ_LOGO
+  Logo_TheLSDJ,
 #endif
 #ifdef BRONSON_LOGO
   Logo_Bronson,
@@ -42,6 +47,12 @@ generate_initial_positions(M_Arena *arena, Preset *preset) {
 
         image_data *data = 0;
         switch(logo) {
+#ifdef THELSDJ_LOGO
+          case Logo_TheLSDJ: {
+            data = (image_data *)&thelsdj_logo;
+            points_per_pixel = 32;
+          } break;
+#endif
 #ifdef BRONSON_LOGO
           case Logo_Bronson: {
             data = (image_data *)&bronson_logo;
