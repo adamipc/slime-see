@@ -30,8 +30,23 @@ enum {
   InputEvent_DEBUGUpdatePeakPickerDelayMS,
   InputEvent_DEBUGPeakPickerReset,
   InputEvent_DEBUGLoadStudio143Logo,
+  InputEvent_DEBUGSetActiveDJLogo,
 
   InputEvent_COUNT,
+};
+
+typedef u8 DJLogo;
+enum {
+  DJLogo_None = 0,
+  DJLogo_TheLSDJ,
+  DJLogo_CameronWade,
+  DJLogo_OuttaPhase,
+
+  DJLogo_COUNT,
+};
+
+struct DEBUGActiveDJLogoData {
+  DJLogo active_dj_logo;
 };
 
 struct LoadStateData {

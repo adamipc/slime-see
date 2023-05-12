@@ -47,6 +47,16 @@ global i32 glitchWindowHeight = 0;
 LRESULT CALLBACK window_proc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
   switch (message)
   {
+    case WM_SETCURSOR: {
+      if (LOWORD(lParam) == HTCLIENT)
+      {
+        SetCursor(NULL);
+
+        return TRUE;
+      } else {
+        return DefWindowProc(hWnd, message, wParam, lParam);
+      }
+    } break;
     case WM_SIZE: {
       GlobalResizeTriggered = true;
     } break;
@@ -245,7 +255,7 @@ load_slimesee_states(M_Arena *arena, String8 state_dir, u64 *state_count) {
       String8 state_file_path = str8_join(scratch, &list, 0);
 
       if(slimeseestate_read_from_file(arena, state_file_path, &result[i])) {
-        printf("Loaded state '%.*s'\n", str8_expand(result[i].name));
+        //printf("Loaded state '%.*s'\n", str8_expand(result[i].name));
         if (result[i].name.size == 0) {
           String8 name = str8_chop(node->string, 6);
           result[i].name = str8_push_copy(arena, name);
@@ -371,7 +381,7 @@ WinMain(HINSTANCE Instance,
   SlimeSeeState *states = load_slimesee_states(scratch, state_dir, &state_count);
   printf("loaded %lld states\n", state_count);
   for (u64 i = 0; i < state_count; ++i) {
-    printf("Loaded state: %.*s\n", str8_expand(states[i].name));
+    //printf("Loaded state: %.*s\n", str8_expand(states[i].name));
   }
 
   u64 state_count_write = state_count;
@@ -547,6 +557,23 @@ WinMain(HINSTANCE Instance,
           state->min_threshold = 20.f;
           state->decay_factor = 0.992f;
           state->delay_ms = 300.f;
+        } break;
+        case InputEvent_DEBUGSetActiveDJLogo: {
+          DEBUGActiveDJLogoData *data = (DEBUGActiveDJLogoData *)node->data;
+          switch (data->active_dj_logo) {
+            case DJLogo_None: {
+              GlobalActiveDJLogo = (pipeline_image_data*)&bronson_logo;
+            } break;
+            case DJLogo_OuttaPhase: {
+              GlobalActiveDJLogo = (pipeline_image_data*)&outta_phase_logo;
+            } break;
+            case DJLogo_TheLSDJ: {
+              GlobalActiveDJLogo = (pipeline_image_data*)&thelsdj_logo;
+            } break;
+            case DJLogo_CameronWade: {
+              GlobalActiveDJLogo = (pipeline_image_data*)&cameron_wade_logo;
+            } break;
+          }
         } break;
         default: {
           printf("Unhandled event: %02x\n", node->event);

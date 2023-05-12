@@ -433,6 +433,21 @@ app_process_input(M_Arena *arena, MidiDeviceHandle *midi_handle, WindowEventList
               event = InputEvent_LoadState;
               load_state_data->state_filename = str8_push_copy(arena, str8_lit("logos_1"));
             } break;
+            case 52: {
+              event = InputEvent_DEBUGSetActiveDJLogo;
+              data = push_struct(arena, DEBUGActiveDJLogoData);
+              ((DEBUGActiveDJLogoData *)data)->active_dj_logo = DJLogo_OuttaPhase;
+            } break;
+            case 53: {
+              event = InputEvent_DEBUGSetActiveDJLogo;
+              data = push_struct(arena, DEBUGActiveDJLogoData);
+              ((DEBUGActiveDJLogoData *)data)->active_dj_logo = DJLogo_TheLSDJ;
+            } break;
+            case 54: {
+              event = InputEvent_DEBUGSetActiveDJLogo;
+              data = push_struct(arena, DEBUGActiveDJLogoData);
+              ((DEBUGActiveDJLogoData *)data)->active_dj_logo = DJLogo_CameronWade;
+            } break;
           }
 
           if (event != InputEvent_None) {

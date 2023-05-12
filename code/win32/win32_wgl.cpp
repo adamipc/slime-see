@@ -24,6 +24,7 @@ win32_create_opengl_window(HINSTANCE Instance, WNDPROC window_proc, int width, i
   window_class.lpfnWndProc = window_proc;
   window_class.hInstance = Instance;
   window_class.lpszClassName = "graphics_window";
+  window_class.hCursor = NULL;
 
   if (!RegisterClass(&window_class)) {
     error = str8_lit("failed to register window class");

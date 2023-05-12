@@ -1,18 +1,24 @@
 #include "app/pipeline.h"
 #include "app/preset.h"
 
-struct image_data {
+struct pipeline_image_data {
   u32 	 width;
   u32 	 height;
   u32 	 bytes_per_pixel; /* 2:RGB16, 3:RGB, 4:RGBA */ 
   u8  	 pixel_data[3];
 };
 
+// TODO(adam): Make this part of the preset or some other structure
+// so we aren't using a global variable
+global pipeline_image_data *GlobalActiveDJLogo = 0;
+
 #ifdef LOGOS
 #define STUDIO143_LOGO 1
 #include "logos/studio143.c"
-#define THELSDJ_LOGO 1
+#define DJ_LOGO 1
 #include "logos/thelsdj.c"
+#include "logos/cameron_wade.c"
+#include "logos/outta_phase.c"
 #define BRONSON_LOGO 1
 #include "logos/bronson.c"
 #endif
@@ -22,11 +28,11 @@ enum {
 #ifdef STUDIO143_LOGO
   Logo_Studio143,
 #endif
-#ifdef THELSDJ_LOGO
-  Logo_TheLSDJ,
-#endif
 #ifdef BRONSON_LOGO
   Logo_Bronson,
+#endif
+#ifdef DJ_LOGO
+  Logo_DJ,
 #endif
 
   Logo_COUNT,
@@ -45,27 +51,38 @@ generate_initial_positions(M_Arena *arena, Preset *preset) {
         // We can use this to increase the density of the simulated pixels
         u32 points_per_pixel = 8;
 
-        image_data *data = 0;
+        pipeline_image_data *data = 0;
+
+        // Set data and adjust points per pixel if needed
         switch(logo) {
-#ifdef THELSDJ_LOGO
-          case Logo_TheLSDJ: {
-            data = (image_data *)&thelsdj_logo;
-            points_per_pixel = 32;
+#ifdef DJ_LOGO
+          case Logo_DJ: {
+            if (GlobalActiveDJLogo) {
+              data = (pipeline_image_data *)GlobalActiveDJLogo;
+              points_per_pixel = 16;
+            }
           } break;
 #endif
 #ifdef BRONSON_LOGO
           case Logo_Bronson: {
-            data = (image_data *)&bronson_logo;
+            data = (pipeline_image_data *)&bronson_logo;
           } break;
 #endif
 #ifdef STUDIO143_LOGO
           case Logo_Studio143: {
-            data = (image_data *)&studio143_logo;
+            data = (pipeline_image_data *)&studio143_logo;
           } break;
 #endif
           case Logo_COUNT: {
-            points_per_pixel = 512;
-            image_data img = {};
+            // Need this incase all the other cases are disabled
+            // by the #ifdefs
+            // This case is handled below
+          } break;
+        }
+
+        if (data == 0) {
+            points_per_pixel = 4096;
+            pipeline_image_data img = {};
             img.width = 1;
             img.height = 1;
             img.bytes_per_pixel = 1;
@@ -73,7 +90,6 @@ generate_initial_positions(M_Arena *arena, Preset *preset) {
             img.pixel_data[1] = 255;
             img.pixel_data[2] = 255;
             data = &img;
-          } break;
         }
 
         // This is the maximum number of points we could have from our image

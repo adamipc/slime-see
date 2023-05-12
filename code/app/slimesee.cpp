@@ -155,7 +155,7 @@ slimeseestate_read_from_file(M_Arena *arena, String8 filename, SlimeSeeState *st
   b32 result = false;
   M_Scratch scratch(arena);
   
-  printf("Attempting to read from file %.*s\n", str8_expand(filename));
+  //printf("Attempting to read from file %.*s\n", str8_expand(filename));
 
   String8 file_contents = os_file_read(scratch, filename);
 
@@ -167,7 +167,7 @@ slimeseestate_read_from_file(M_Arena *arena, String8 filename, SlimeSeeState *st
     // Check that our "header" matches the size of SlimeSeeState
     if (str8_match(node->string, str8_pushf(scratch, "%d", sizeof(SlimeSeeState)), 0)) {
       node = node->next;
-      printf("File %.*s is a valid SlimeSeeState file\n", str8_expand(filename));
+      //printf("File %.*s is a valid SlimeSeeState file\n", str8_expand(filename));
       if (!node) { goto error; }
 
       state_out->name = str8_push_copy(arena, node->string); node = node->next;
@@ -308,7 +308,7 @@ slimeseestate_read_from_file(M_Arena *arena, String8 filename, SlimeSeeState *st
       if (!node) { goto error; }
       state_out->color_swap = str8_to_f32(node->string);
       result = true;
-      printf("Successfully loaded SlimeSeeState from %.*s\n", str8_expand(filename));
+      //printf("Successfully loaded SlimeSeeState from %.*s\n", str8_expand(filename));
 
 error: ;
      
