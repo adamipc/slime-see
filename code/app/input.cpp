@@ -433,6 +433,9 @@ app_process_input(M_Arena *arena, MidiDeviceHandle *midi_handle, WindowEventList
               event = InputEvent_LoadState;
               load_state_data->state_filename = str8_push_copy(arena, str8_lit("logos_1"));
             } break;
+            case 51: {
+              event = InputEvent_ToggleAutomation;
+            } break;
             case 52: {
               event = InputEvent_DEBUGSetActiveDJLogo;
               data = push_struct(arena, DEBUGActiveDJLogoData);

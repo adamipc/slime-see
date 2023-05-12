@@ -398,6 +398,7 @@ WinMain(HINSTANCE Instance,
     printf("error_code: %d\n", error_code);
   }
 
+  u64 last_input_time_seconds = os_now_microseconds() / 1000000;
   u64 last_time = os_now_microseconds();
   u64 frame = 0;
   GlobalRunning = true;
@@ -416,6 +417,12 @@ WinMain(HINSTANCE Instance,
     for (InputEventNode *node = input_events.first;
          node != 0;
          node = node->next) {
+      last_input_time_seconds = os_now_microseconds() / 1000000;
+      if (AutomatePresets) {
+        printf("screensaver deactivated\n");
+        AutomatePresets = false;
+        printf("event: %d\n", node->event);
+      }
       switch (node->event) {
         case InputEvent_UpdateWindowGlitch: {
           GlitchWindowData *data = (GlitchWindowData *)node->data;
@@ -586,6 +593,14 @@ WinMain(HINSTANCE Instance,
       }
     };
 
+    int ScreenSaverDelaySeconds = 30;
+    if (!AutomatePresets) {
+      if (last_input_time_seconds < (os_now_microseconds() / 1000000) - ScreenSaverDelaySeconds) {
+        printf("Screen saver activated\n");
+        AutomatePresets = true;
+      }
+    }
+
     u64 audio_start_time = os_now_microseconds();
 
     // THis is here for debugging purposes but should be moved back before main drawing
@@ -637,7 +652,7 @@ WinMain(HINSTANCE Instance,
     f32 fps = 1000.0f / frame_time_ms;
 
     if ((frame % 61) == 0) {
-      printf("frame time: %f ms, fps: %f audio time: %f ms\n", frame_time_ms, fps, audio_time_taken / 1000.0f);
+      //printf("frame time: %f ms, fps: %f audio time: %f ms\n", frame_time_ms, fps, audio_time_taken / 1000.0f);
     }
 
     frame++;

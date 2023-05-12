@@ -583,6 +583,8 @@ slimesee_init(M_Arena *arena, int width, int height) {
   slimesee->state->old_preset = slimesee->state->primary_preset;
   slimesee->state->transition_start = 0.0f;
   slimesee->state->transition_length_ms = 0.0f;
+  // BUG(adam): This transition time is not correct as u_time_ms isn't
+  // milliseconds, its like 10ms?
   slimesee->state->beat_transition_ms = 37.5f; // sixteenth beat at 120bpm
   slimesee->state->beat_transition = false;
   slimesee->state->beat_transition_ratio = 0.0f;
@@ -597,23 +599,24 @@ slimesee_update_time(SlimeSee* slimesee, u64 elapsed_time_microseconds, b32 auto
   slimesee->last_time_ms = slimesee->u_time_ms;
   slimesee->u_time_ms += (f32)elapsed_time_microseconds / 10000.0f;
 
-  if (automate_presets) {
-    if (slimesee->u_time_ms > slimesee->state->transition_start + slimesee->state->transition_length_ms) {
+  if (automate_presets && !slimesee->state->beat_transition) {
+    //printf("u_time_ms: %f, transition_start: %f, transition_length_ms: %f\n", slimesee->u_time_ms, slimesee->state->transition_start, slimesee->state->transition_length_ms);
+    // BUG(adam): Transition length is correct but to deal with its misuse elsewhere we need to make it 10 longer and
+    // 100 smaller in this calculation
+    if (slimesee->u_time_ms > slimesee->state->transition_start + (slimesee->state->transition_length_ms / 100)) {
+      printf("automating presets\n");
       slimesee->state->old_preset = lerp_preset(slimesee->state->primary_preset, slimesee->state->secondary_preset, slimesee->state->blend_value);
       slimesee->state->primary_preset = slimesee->state->secondary_preset;
       slimesee->state->secondary_preset = randomize_preset();
       //slimesee->state->beat_preset = randomize_preset();
       slimesee->state->transition_start = slimesee->u_time_ms;
-      slimesee->state->transition_length_ms = (rand()/((f32)RAND_MAX) * 20000.0f) + 2000.0f;
+      slimesee->state->transition_length_ms = (rand()/((f32)RAND_MAX) * 200000.0f) + 100000.0f;
       slimesee->state->color_swap = rand()/((f32)RAND_MAX);
-      if (rand()/((f32)RAND_MAX) < 0.05f) {
+      if (rand()/((f32)RAND_MAX) < 0.7f) {
         slimesee->reset_points_on_beat = true;
       }
-      if (rand()/((f32)RAND_MAX) < 0.05f) {
+      if (rand()/((f32)RAND_MAX) < 0.5f) {
         slimesee->state->beat_preset = randomize_preset();
-      }
-      if (rand()/((f32)RAND_MAX) < 0.8f) {
-        slimesee->clear_textures_on_beat = true;
       }
     }
   }
@@ -666,6 +669,7 @@ slimesee_draw(SlimeSee *slimesee) {
     if (beat_transition) {
       slimesee->state->transition_start = slimesee->stored_transition_start;
       slimesee->state->transition_length_ms = slimesee->stored_transition_length_ms;
+      //printf("restoring transition start: %f, length: %f\n", slimesee->state->transition_start, slimesee->state->transition_length_ms);
       slimesee->state->beat_transition = false;
     }
   }
@@ -681,7 +685,9 @@ slimesee_draw(SlimeSee *slimesee) {
   uniforms_1.time = u_time;
   uniforms_1.texture0 = 0;
   uniforms_1.texture1 = 1;
-  uniforms_1.speed_multiplier = draw_preset.speed_multiplier;
+  // HACK(adam): Testing various values
+  //uniforms_1.speed_multiplier = draw_preset.speed_multiplier;
+  uniforms_1.speed_multiplier = 1.0f;
   uniforms_1.vertex_radius = draw_preset.point_size;
   uniforms_1.random_steer_factor = draw_preset.random_steer_factor;
   uniforms_1.constant_steer_factor = draw_preset.constant_steer_factor;
