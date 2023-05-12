@@ -451,9 +451,10 @@ beat_detector_init(M_Arena *arena, u32 sample_rate, OnsetDetectionMethod odm, Pe
   PeakPicker *peak_picker = push_array(arena, PeakPicker, 1);
   peak_picker_init(arena, peak_picker, ppt);
   // Can set custom frame and hop sizes for the detection method that is used
-  Assert(sample_rate == 44100);
+  // TODO(adam): Handle 96000 sample rate
+  Assert(sample_rate == 44100 || sample_rate == 48000);
   detector->frame_size = 2048; // 46ms;
-  detector->hop_size = 441;    // 10ms (78.5% overlap)
+  detector->hop_size = sample_rate / 100;    // 10ms (78.5% overlap)
   switch (odm) {
     case OnsetDetectionMethod_SpectralFlux: {
       SpectralFluxState *state = push_array(arena, SpectralFluxState, 1);

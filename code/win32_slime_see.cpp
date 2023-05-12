@@ -311,6 +311,11 @@ WinMain(HINSTANCE Instance,
     index++;
   }
 
+  // HACK(adam): Default to 0 index audio device if we didn't find one
+  if (AudioDeviceID == -1) {
+    AudioDeviceID = 0;
+  }
+
   os_audio_device *audio_device = os_media_audio_recording_open(scratch, AudioDeviceID);
 
   BeatDetector *detector = beat_detector_init(scratch, audio_device->samples_per_second, OnsetDetectionMethod_SpectralFlux, PeakPickerType_ThresholdDecayDelay);
