@@ -593,7 +593,7 @@ WinMain(HINSTANCE Instance,
       }
     };
 
-    int ScreenSaverDelaySeconds = 30;
+    int ScreenSaverDelaySeconds = 60;
     if (!AutomatePresets) {
       if (last_input_time_seconds < (os_now_microseconds() / 1000000) - ScreenSaverDelaySeconds) {
         printf("Screen saver activated\n");
