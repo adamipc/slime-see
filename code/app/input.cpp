@@ -280,78 +280,156 @@ app_process_input(M_Arena *arena, MidiDeviceHandle *midi_handle, WindowEventList
           data = push_struct(arena, LoadStateData);
           LoadStateData *load_state_data = (LoadStateData *)data;
           switch (pad) {
+            /*
+               0 0 0 0
+               0 0 0 0
+               0 0 0 0
+               x 0 0 0
+            */
             case 0:
             case 16:
             case 32: {
               event = InputEvent_LoadState;
               load_state_data->state_filename = str8_push_copy(arena, str8_lit("color_theory_2"));
             } break;
+            /*
+               0 0 0 0
+               0 0 0 0
+               0 0 0 0
+               x 0 0 0
+            */
             case 1:
             case 17:
             case 33: {
               event = InputEvent_LoadState;
               load_state_data->state_filename = str8_push_copy(arena, str8_lit("jellyfish_breaks_1"));
             } break;
+            /*
+               0 0 0 0
+               0 0 0 0
+               0 0 0 0
+               x 0 0 0
+            */
             case 2:
             case 18:
             case 34: {
               event = InputEvent_LoadState;
               load_state_data->state_filename = str8_push_copy(arena, str8_lit("panache_1"));
             } break;
+            /*
+               0 0 0 0
+               0 0 0 0
+               0 0 0 0
+               x 0 0 0
+            */
             case 3:
             case 19:
             case 35: {
               event = InputEvent_LoadState;
               load_state_data->state_filename = str8_push_copy(arena, str8_lit("watercolours_1"));
             } break;
+            /*
+               0 0 0 0
+               0 0 0 0
+               0 0 0 0
+               x 0 0 0
+            */
             case 4:
             case 20:
             case 36: {
               event = InputEvent_LoadState;
               load_state_data->state_filename = str8_push_copy(arena, str8_lit("lava_lamp_1"));
             } break;
+            /*
+               0 0 0 0
+               0 0 0 0
+               0 0 0 0
+               x 0 0 0
+            */
             case 5:
             case 21:
             case 37: {
               event = InputEvent_LoadState;
               load_state_data->state_filename = str8_push_copy(arena, str8_lit("ahha_1"));
             } break;
+            /*
+               0 0 0 0
+               0 0 0 0
+               0 0 0 0
+               x 0 0 0
+            */
             case 6:
             case 22:
             case 38: {
               event = InputEvent_LoadState;
               load_state_data->state_filename = str8_push_copy(arena, str8_lit("pretty_lights_1"));
             } break;
+            /*
+               0 0 0 0
+               0 0 0 0
+               0 0 0 0
+               x 0 0 0
+            */
             case 7:
             case 23:
             case 39: {
               event = InputEvent_LoadState;
               load_state_data->state_filename = str8_push_copy(arena, str8_lit("burning_chrome_1"));
             } break;
+            /*
+               0 0 0 0
+               0 0 0 0
+               0 0 0 0
+               x 0 0 0
+            */
             case 8:
             case 24:
             case 40: {
               event = InputEvent_LoadState;
               load_state_data->state_filename = str8_push_copy(arena, str8_lit("shizzle_1"));
             } break;
+            /*
+               0 0 0 0
+               0 0 0 0
+               0 0 0 0
+               x 0 0 0
+            */
             case 9:
             case 25:
             case 41: {
               event = InputEvent_LoadState;
               load_state_data->state_filename = str8_push_copy(arena, str8_lit("slimesee_013"));
             } break;
+            /*
+               0 0 0 0
+               0 0 0 0
+               0 0 0 0
+               x 0 0 0
+            */
             case 10:
             case 26:
             case 42: {
               event = InputEvent_LoadState;
               load_state_data->state_filename = str8_push_copy(arena, str8_lit("warm_fire_1"));
             } break;
+            /*
+               0 0 0 0
+               0 0 0 0
+               0 0 0 0
+               x 0 0 0
+            */
             case 11:
             case 27:
             case 43: {
               event = InputEvent_LoadState;
               load_state_data->state_filename = str8_push_copy(arena, str8_lit("particle_accelerator_1"));
             } break;
+            /*
+               0 0 0 0
+               0 0 0 0
+               0 0 0 0
+               x 0 0 0
+            */
             case 12:
             case 28:
             case 44: {
@@ -370,6 +448,12 @@ app_process_input(M_Arena *arena, MidiDeviceHandle *midi_handle, WindowEventList
               // bottom of the loop will push this event
             } break;
                      // Yes
+                     /*
+               0 0 0 0
+               0 0 0 0
+               0 0 0 0
+               x 0 0 0
+            */
             case 13:
             case 29:
             case 45: {
@@ -395,6 +479,12 @@ app_process_input(M_Arena *arena, MidiDeviceHandle *midi_handle, WindowEventList
               ((GlitchWindowData *)data)->glitch_reset = false;
             } break;
                      // No
+                     /*
+               0 0 0 0
+               0 0 0 0
+               0 0 0 0
+               x 0 0 0
+            */
             case 14:
             case 30:
             case 46: {
@@ -419,33 +509,75 @@ app_process_input(M_Arena *arena, MidiDeviceHandle *midi_handle, WindowEventList
               ((GlitchWindowData *)data)->glitch_value = 0;
               ((GlitchWindowData *)data)->glitch_reset = true;
             } break;
+            /*
+               0 0 0 0
+               0 0 0 0
+               0 0 0 0
+               x 0 0 0
+            */
             case 15:
             case 31:
             case 47: {
               event = InputEvent_PanicAtTheDisco;
             } break;
+            /*
+               0 0 0 0
+               0 0 0 0
+               0 0 0 0
+               x 0 0 0
+            */
             // Debug pads:
             case 48: {
               // Reset peak picker debug changes
               event = InputEvent_DEBUGPeakPickerReset;
             } break;
+            /*
+               0 0 0 0
+               0 0 0 0
+               0 0 0 0
+               x 0 0 0
+            */
             case 49: {
               event = InputEvent_LoadState;
               load_state_data->state_filename = str8_push_copy(arena, str8_lit("logos_1"));
             } break;
+            /*
+               0 0 0 0
+               0 0 0 0
+               0 0 0 0
+               x 0 0 0
+            */
             case 51: {
               event = InputEvent_ToggleAutomation;
             } break;
+            /*
+               0 0 0 0
+               0 0 0 0
+               0 0 0 0
+               x 0 0 0
+            */
             case 52: {
               event = InputEvent_DEBUGSetActiveDJLogo;
               data = push_struct(arena, DEBUGActiveDJLogoData);
               ((DEBUGActiveDJLogoData *)data)->active_dj_logo = DJLogo_OuttaPhase;
             } break;
+            /*
+               0 0 0 0
+               0 0 0 0
+               0 0 0 0
+               x 0 0 0
+            */
             case 53: {
               event = InputEvent_DEBUGSetActiveDJLogo;
               data = push_struct(arena, DEBUGActiveDJLogoData);
               ((DEBUGActiveDJLogoData *)data)->active_dj_logo = DJLogo_TheLSDJ;
             } break;
+            /*
+               0 0 0 0
+               0 0 0 0
+               0 0 0 0
+               x 0 0 0
+            */
             case 54: {
               event = InputEvent_DEBUGSetActiveDJLogo;
               data = push_struct(arena, DEBUGActiveDJLogoData);

@@ -303,6 +303,7 @@ WinMain(HINSTANCE Instance,
   for (String8Node *node = audio_devices.first;
        node != 0;
        node = node->next) {
+    printf("%d: %.*s\n", index, str8_expand(node->string));
     if (str8_match(node->string, audio_device_name, 0)) {
       printf("Found audio device: %.*s\n", str8_expand(node->string));
       AudioDeviceID = index;
@@ -570,6 +571,7 @@ WinMain(HINSTANCE Instance,
           state->decay_factor = 0.992f;
           state->delay_ms = 300.f;
         } break;
+        /*
         case InputEvent_DEBUGSetActiveDJLogo: {
           DEBUGActiveDJLogoData *data = (DEBUGActiveDJLogoData *)node->data;
           switch (data->active_dj_logo) {
@@ -587,6 +589,7 @@ WinMain(HINSTANCE Instance,
             } break;
           }
         } break;
+	// */
         default: {
           printf("Unhandled event: %02x\n", node->event);
         } break;
@@ -609,7 +612,7 @@ WinMain(HINSTANCE Instance,
     u64 audio_time_taken = os_now_microseconds() - audio_start_time;
 
     if (beat_intensity > 0.0f) {
-      //printf("Beat intensity: %f\n", beat_intensity);
+      printf("Beat intensity: %f\n", beat_intensity);
       // NOTE(adam): for debugging just send 1.0
       slimesee_beat_transition(slimesee, 1.0f);
     }

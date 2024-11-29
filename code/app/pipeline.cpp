@@ -15,13 +15,16 @@ global pipeline_image_data *GlobalActiveDJLogo = 0;
 #ifdef LOGOS
 #define STUDIO143_LOGO 1
 #include "logos/studio143.c"
+
 #define DJ_LOGO 1
 #include "logos/thelsdj.c"
 #include "logos/cameron_wade.c"
 #include "logos/outta_phase.c"
+
 #define BRONSON_LOGO 1
 #include "logos/bronson.c"
-#endif
+
+#endif /// LOGOS
 
 typedef u8 Logos;
 enum {
